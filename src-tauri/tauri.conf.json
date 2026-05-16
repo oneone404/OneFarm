@@ -1,0 +1,29 @@
+{
+  "productName": "ultra-fast-rs",
+  "version": "0.1.0",
+  "identifier": "com.onefarm.auto",
+  "build": {
+    "frontendDist": "../static",
+    "devUrl": null,
+    "beforeDevCommand": "",
+    "beforeBuildCommand": ""
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "title": "OneFarm",
+        "width": 1000,
+        "height": 700,
+        "resizable": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all"
+  }
+}
