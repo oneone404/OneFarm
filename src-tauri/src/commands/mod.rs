@@ -254,8 +254,10 @@ pub async fn test_template(state: State<'_, AppState>, name: String) -> std::res
             None
         };
 
+        let threshold = if name.contains("_strict") { 12 } else { 25 };
+
         let start_recog = std::time::Instant::now();
-        if let Some((fx, fy, score)) = FastRecognizer::find_template_step(&screen_rgba, norm_w as usize, norm_h as usize, 4, &template_data, tw as usize, th as usize, 25, max_scan_w) {
+        if let Some((fx, fy, score)) = FastRecognizer::find_template_step(&screen_rgba, norm_w as usize, norm_h as usize, 4, &template_data, tw as usize, th as usize, threshold, max_scan_w) {
             let recog_time = start_recog.elapsed().as_millis();
             let tx = (fx as f64 + tw as f64 / 2.0) as i32;
             let ty = (fy as f64 + th as f64 / 2.0) as i32;
@@ -410,9 +412,11 @@ pub async fn test_all_templates(state: State<'_, AppState>) -> std::result::Resu
             None
         };
 
+        let threshold = if name.contains("_strict") { 12 } else { 25 };
+
         if let Some((fx, fy, score)) = FastRecognizer::find_template_step(
             &screen_rgba, norm_w as usize, norm_h as usize, 4, 
-            &template_data, tw as usize, th as usize, 25, max_scan_w
+            &template_data, tw as usize, th as usize, threshold, max_scan_w
         ) {
             let tx = (fx as f64 + tw as f64 / 2.0) as i32;
             let ty = (fy as f64 + th as f64 / 2.0) as i32;
