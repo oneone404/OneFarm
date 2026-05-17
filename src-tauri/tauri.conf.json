@@ -1,7 +1,7 @@
 {
   "productName": "ultra-fast-rs",
   "version": "0.1.0",
-  "identifier": "com.onefarm.auto",
+  "identifier": "com.onefarm.oneone",
   "build": {
     "frontendDist": "../static",
     "devUrl": null,
@@ -13,9 +13,10 @@
     "windows": [
       {
         "title": "OneFarm",
-        "width": 1000,
-        "height": 700,
-        "resizable": true
+        "width": 950,
+        "height": 550,
+        "resizable": true,
+        "decorations": false
       }
     ],
     "security": {
@@ -24,6 +25,13 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all"
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
   }
 }
