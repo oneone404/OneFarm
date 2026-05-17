@@ -1,125 +1,7 @@
-:root {
-    --bg-color: #ffffff;
-    --header-bg: #f1f5f9;
-    --card-bg: #ffffff;
-    --text-primary: #1e293b;
-    --text-secondary: #64748b;
-    --accent-color: #0284c7;
-    --accent-hover: #0369a1;
-    --secondary-color: #f8fafc;
-    --secondary-hover: #e2e8f0;
-    --border-color: #e2e8f0;
-    --success-color: #10b981;
-    --error-color: #ef4444;
-}
-
-[data-theme="dark"] {
-    --bg-color: #000000;
-    --header-bg: #0b0b0b;
-    --card-bg: #080808;
-    --text-primary: #f3f4f6;
-    --text-secondary: #9ca3af;
-    --accent-color: #38bdf8;
-    --accent-hover: #0284c7;
-    --secondary-color: #121212;
-    --secondary-hover: #262626;
-    --border-color: #222222;
-}
-
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-}
-
-::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.1);
-    border-radius: 10px;
-    transition: background 0.2s;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 0, 0, 0.2);
-}
-
-[data-theme="dark"] ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
-}
-
-[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.2);
-}
-
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: 'Inter', sans-serif;
-}
-
-body {
-    background: var(--bg-color);
-    color: var(--text-primary);
-    overflow: hidden;
-    height: 100vh;
-}
-
-.app-container {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-}
-
-header {
-    height: 30px; /* Siêu mỏng */
-    background: var(--header-bg);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0 10px;
-    border-bottom: 1.2px solid var(--border-color);
-    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
-    user-select: none;
-    -webkit-user-select: none;
-    z-index: 100;
-}
-
-.logo {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    color: var(--text-primary);
-    opacity: 0.9;
-}
-
-.logo span {
-    font-size: 0.7rem; /* Nhỏ lại một chút */
-    font-weight: 800;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-}
-
-.window-actions {
-    display: flex;
-    align-items: center;
-    gap: 1px;
-}
-
-.win-controls {
-    display: flex;
-    margin-left: 6px;
-    border-left: 1px solid var(--border-color);
-    padding-left: 4px;
-}
-
 /* Minimalist Icon Buttons */
 .icon-btn, .win-btn {
     width: 30px;
-    height: 26px; /* Nhỏ lại để vừa Header 30px */
+    height: 26px;
     background: transparent;
     border: none;
     color: var(--text-secondary);
@@ -139,13 +21,6 @@ header {
 .win-btn.close:hover {
     background: #ef4444;
     color: white;
-}
-
-/* Device List Area */
-.main-content {
-    flex: 1;
-    padding: 15px;
-    overflow-y: auto;
 }
 
 .device-list {
@@ -239,7 +114,6 @@ header {
     border-color: #713f12;
 }
 
-/* Styles for disabled controls in the device row */
 .device-row.disabled-row button.primary-btn,
 .device-row.disabled-row button.accent-btn,
 .device-row.disabled-row .template-select {
@@ -254,7 +128,6 @@ header {
     color: var(--text-secondary);
 }
 
-/* Redesigned Premium Flat Buttons (Zero Shadow) */
 button.primary-btn {
     font-size: 0.75rem;
     font-weight: 700;
@@ -330,43 +203,11 @@ button.accent-btn:hover {
     color: var(--text-secondary);
 }
 
-/* macOS Console Styles (Keeping them as requested) */
-.mac-console {
-    margin: 0 15px 15px 15px;
-    border-radius: 10px;
-    overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    border: 1px solid var(--border-color);
+.log-entry {
+    margin-bottom: 2px;
+    font-size: 0.75rem;
 }
 
-.mac-header {
-    background: var(--header-bg);
-    height: 24px;
-    display: flex;
-    align-items: center;
-    padding: 0 10px;
-    position: relative;
-    border-bottom: 1px solid var(--border-color);
+.hidden {
+    display: none;
 }
-
-.mac-buttons { display: flex; gap: 6px; position: absolute; left: 10px; }
-.dot { width: 10px; height: 10px; border-radius: 50%; }
-.red { background: #ff5f57; }
-.yellow { background: #febc2e; }
-.green { background: #28c840; }
-.mac-title { width: 100%; text-align: center; font-size: 0.65rem; color: var(--text-secondary); font-weight: 600; }
-
-.footer-console {
-    height: 140px;
-    background: #ffffff;
-    padding: 10px 15px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.8rem;
-    color: var(--text-primary);
-    overflow-y: auto;
-}
-
-[data-theme="dark"] .footer-console { background: #000000; }
-
-.log-entry { margin-bottom: 2px; font-size: 0.75rem; }
-.hidden { display: none; }
