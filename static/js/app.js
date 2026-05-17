@@ -1,6 +1,7 @@
 // Chờ DOM sẵn sàng
 document.addEventListener('DOMContentLoaded', () => {
     initWindowControls();
+    initKeyboardBlocker();
     initAppLogic();
 });
 
@@ -55,4 +56,25 @@ function initAppLogic() {
 
     loadTemplates().then(loadDevices);
     log('Hệ thống OneFarm Multi đã sẵn sàng.', 'success');
+}
+
+function initKeyboardBlocker() {
+    window.addEventListener('keydown', (e) => {
+        // Chặn phím chức năng F1 đến F12 (ví dụ F5 refresh, F12 DevTools...)
+        if (e.key.startsWith('F') && e.key.length > 1) {
+            const fNum = parseInt(e.key.substring(1));
+            if (fNum >= 1 && fNum <= 12) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+        }
+        
+        // Chặn các tổ hợp phím hệ thống Ctrl hoặc Command (Ctrl+R, Ctrl+F, Ctrl+S, Ctrl+P...)
+        if (e.ctrlKey || e.metaKey) {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        }
+    }, true);
 }
