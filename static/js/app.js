@@ -72,6 +72,11 @@ function initKeyboardBlocker() {
         
         // Chặn các tổ hợp phím hệ thống Ctrl hoặc Command (Ctrl+R, Ctrl+F, Ctrl+S, Ctrl+P...)
         if (e.ctrlKey || e.metaKey) {
+            const key = e.key.toLowerCase();
+            // Cho phép sao chép (C), dán (V), cắt (X), chọn tất cả (A)
+            if (key === 'c' || key === 'v' || key === 'x' || key === 'a') {
+                return;
+            }
             e.preventDefault();
             e.stopPropagation();
             return false;
