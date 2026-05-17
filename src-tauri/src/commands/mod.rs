@@ -295,3 +295,116 @@ pub fn disconnect_session(state: State<'_, AppState>, handle: isize) {
     }
     grabbers.remove(&handle);
 }
+
+#[tauri::command]
+pub async fn test_all_templates(state: State<'_, AppState>) -> std::result::Result<String, String> {
+    let start_total = std::time::Instant::now();
+    
+    // 1. Capture 1 frame duy nhất cho thiết bị active
+    let (g, _, bind_hwnd, serial) = get_or_create_grabber(&state)?;
+    
+    let (aw, ah, screen_img) = unsafe {
+        let mut c_rect = RECT::default();
+        let _ = GetClientRect(bind_hwnd, &mut c_rect);
+        let aw = c_rect.right as u32; let ah = c_rect.bottom as u32;
+        let frame = g.capture_frame().map_err(|e| format!("{:?}", e))?;
+        let (cw, ch) = g.get_resolution();
+        
+        let mut pt = POINT::default(); let mut rect = RECT::default();
+        let _ = ClientToScreen(bind_hwnd, &mut pt);
+        let _ = GetWindowRect(HWND(state.active_device.lock().unwrap().as_ref().unwrap().handle as *mut _), &mut rect);
+        let ox = (pt.x - rect.left).max(0) as u32;
+        let oy = (pt.y - rect.top).max(0) as u32;
+
+        let mut screen_img: RgbaImage = ImageBuffer::new(aw, ah);
+        let screen_mut: &mut [u8] = &mut *screen_img;
+        let cw_bytes = cw as usize * 4;
+        let aw_bytes = aw as usize * 4;
+
+        for y in 0..ah as usize {
+            let sy = y + oy as usize;
+            if sy >= ch as usize { break; }
+            let src_row_start = sy * cw_bytes + ox as usize * 4;
+            let dest_row_start = y * aw_bytes;
+            let copy_width = (cw as usize).saturating_sub(ox as usize).min(aw as usize);
+            let src_ptr = frame.as_ptr().add(src_row_start);
+            let dest_ptr = screen_mut.as_mut_ptr().add(dest_row_start);
+
+            for i in 0..copy_width {
+                let s_idx = i * 4;
+                let d_idx = i * 4;
+                let b = *src_ptr.add(s_idx);
+                let g = *src_ptr.add(s_idx + 1);
+                let r = *src_ptr.add(s_idx + 2);
+                *dest_ptr.add(d_idx) = r;
+                *dest_ptr.add(d_idx + 1) = g;
+                *dest_ptr.add(d_idx + 2) = b;
+                *dest_ptr.add(d_idx + 3) = 255;
+            }
+        }
+        (aw, ah, screen_img)
+    };
+
+    // Chuẩn hóa khung hình duy nhất
+    let diff_w = (aw as i32 - BASE_W as i32).abs();
+    let diff_h = (ah as i32 - BASE_H as i32).abs();
+    let norm = if diff_w > 4 || diff_h > 4 {
+        image::imageops::resize(&screen_img, BASE_W, BASE_H, image::imageops::FilterType::Nearest)
+    } else {
+        screen_img
+    };
+    
+    let norm_w = norm.width();
+    let norm_h = norm.height();
+    let screen_rgba = norm.into_raw();
+
+    // 2. Lấy toàn bộ các templates trong thư mục hoặc cache
+    let templates: Vec<(String, Arc<Vec<u8>>, u32, u32)> = {
+        let mut cache = state.template_cache.lock().unwrap();
+        // Nếu cache trống thì nạp lại
+        if cache.is_empty() {
+            if let Ok(entries) = fs::read_dir("templates") {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    if let Some(ext) = path.extension() {
+                        if ext == "png" {
+                            let name = path.file_name().unwrap().to_string_lossy().into_owned();
+                            if let Ok(img) = image::open(&path) {
+                                let (w, h) = img.dimensions();
+                                let data = Arc::new(img.to_rgb8().into_raw());
+                                cache.insert(name.clone(), CachedTemplate { dimensions: (w, h), data });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        cache.iter().map(|(name, t)| (name.clone(), Arc::clone(&t.data), t.dimensions.0, t.dimensions.1)).collect()
+    };
+
+    let mut logs = Vec::new();
+    logs.push(format!("===== BAT DAU KIEM TRA TOAN BO ANH MAU ({}) =====", serial));
+    let mut found_count = 0;
+
+    for (name, template_data, tw, th) in templates {
+        if let Some((fx, fy, score)) = FastRecognizer::find_template_step(
+            &screen_rgba, norm_w as usize, norm_h as usize, 4, 
+            &template_data, tw as usize, th as usize, 25
+        ) {
+            let tx = (fx as f64 + tw as f64 / 2.0) as i32;
+            let ty = (fy as f64 + th as f64 / 2.0) as i32;
+            let actual_tx = (tx as f64 * aw as f64 / norm_w as f64) as i32;
+            let actual_ty = (ty as f64 * ah as f64 / norm_h as f64) as i32;
+            
+            logs.push(format!("[TIM THAY] {} -> scaled: ({}, {}), goc: ({}, {}) | Score: {}", name, tx, ty, actual_tx, actual_ty, score));
+            found_count += 1;
+        } else {
+            logs.push(format!("[KHONG THAY] {}", name));
+        }
+    }
+
+    let elapsed = start_total.elapsed().as_millis();
+    logs.push(format!("===== HOAN THANH: Tim thay {}/{} anh mau | Tong: {}ms =====", found_count, logs.len() - 2, elapsed));
+    
+    Ok(logs.join("\n"))
+}

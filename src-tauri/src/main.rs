@@ -34,7 +34,8 @@ fn main() {
             commands::set_active_device,
             commands::check_session,
             commands::connect_session,
-            commands::disconnect_session
+            commands::disconnect_session,
+            commands::test_all_templates
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

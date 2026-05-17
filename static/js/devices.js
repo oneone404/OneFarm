@@ -63,13 +63,23 @@ async function createDeviceRow(device, idx) {
         await handleTest(device, select.value, row);
         updateSessionBadge(device, row);
     };
+
+    const btnTestAll = document.createElement('button');
+    btnTestAll.className = 'accent-btn';
+    btnTestAll.style.backgroundColor = '#10b981'; // Green color for Test All
+    btnTestAll.style.borderColor = '#10b981';
+    btnTestAll.innerHTML = 'Test All';
+    btnTestAll.onclick = async () => {
+        await handleTestAll(device, row);
+        updateSessionBadge(device, row);
+    };
  
     const rowLog = document.createElement('div');
     rowLog.className = 'row-log';
     rowLog.style.display = 'none';
     rowLog.textContent = 'San sang';
  
-    row.append(info, btnResize, btnCapture, select, btnTest, rowLog);
+    row.append(info, btnResize, btnCapture, select, btnTest, btnTestAll, rowLog);
     deviceListEl.appendChild(row);
 }
  
@@ -195,5 +205,19 @@ async function handleTest(device, template, row) {
     } catch (err) {
         rowLog.textContent = 'Loi';
         log(`[${device.title}] ${err}`, 'error');
+    }
+}
+
+async function handleTestAll(device, row) {
+    const rowLog = row.querySelector('.row-log');
+    try {
+        rowLog.textContent = 'Checking all...';
+        await invoke('set_active_device', { device });
+        const res = await invoke('test_all_templates');
+        log(res, 'info');
+        rowLog.textContent = 'Checked';
+    } catch (err) {
+        rowLog.textContent = 'Loi';
+        log(`[${device.title}] Loi: ${err}`, 'error');
     }
 }
