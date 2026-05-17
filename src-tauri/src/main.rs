@@ -120,8 +120,14 @@ fn set_active_device(state: State<'_, AppState>, device: DeviceInfo) -> std::res
 fn resize_ld(state: State<'_, AppState>) -> std::result::Result<String, String> {
     let device = state.active_device.lock().unwrap().clone().ok_or("Chưa chọn thiết bị!")?;
     
-    // Xóa grabber cũ của thiết bị này để force cập nhật lại resolution nếu cần
-    state.grabbers.lock().unwrap().remove(&device.handle);
+    // Đóng Grabber cũ một cách an toàn để giải phóng tài nguyên trước khi thay đổi kích thước
+    {
+        let mut grabbers = state.grabbers.lock().unwrap();
+        if let Some(g) = grabbers.get(&device.handle) {
+            g.close();
+        }
+        grabbers.remove(&device.handle);
+    }
     
     unsafe {
         let hwnd = HWND(device.handle as *mut _);

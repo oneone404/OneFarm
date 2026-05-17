@@ -311,6 +311,8 @@ async function handleResize(device, row) {
     } catch (err) {
         rowLog.textContent = 'Loi';
         log(`[${device.title}] ${err}`, 'error');
+    } finally {
+        await updateSessionBadge(device, row);
     }
 }
 
