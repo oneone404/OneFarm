@@ -18,9 +18,13 @@ impl FastRecognizer {
                 let test_points = [
                     (inset_x, inset_y), 
                     (tpl_w - 1 - inset_x, inset_y), 
-                    (tpl_w / 2, tpl_h / 2), 
                     (inset_x, tpl_h - 1 - inset_y), 
-                    (tpl_w - 1 - inset_x, tpl_h - 1 - inset_y)
+                    (tpl_w - 1 - inset_x, tpl_h - 1 - inset_y),
+                    (tpl_w / 2, tpl_h / 2),
+                    (tpl_w / 3, tpl_h / 3),
+                    (tpl_w * 2 / 3, tpl_h / 3),
+                    (tpl_w / 3, tpl_h * 2 / 3),
+                    (tpl_w * 2 / 3, tpl_h * 2 / 3),
                 ];
 
                 for (tx, ty) in test_points {
