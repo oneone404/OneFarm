@@ -4,14 +4,17 @@ impl FastRecognizer {
     pub fn find_template_step(
         img_rgb: &[u8], img_w: usize, img_h: usize, img_stride: usize,
         tpl_rgb: &[u8], tpl_w: usize, tpl_h: usize,
-        threshold: u32
+        threshold: u32, max_scan_w: Option<usize>
     ) -> Option<(usize, usize, u32)> {
         if tpl_w > img_w || tpl_h > img_h { return None; }
+
+        let limit_w = max_scan_w.unwrap_or(img_w).min(img_w);
+        if tpl_w > limit_w { return None; }
 
         let adjusted_threshold = threshold;
 
         for y in 0..img_h - tpl_h {
-            for x in 0..img_w - tpl_w {
+            for x in 0..limit_w - tpl_w {
                 let mut quick_possible = true;
                 let inset_x = (tpl_w / 6).max(1);
                 let inset_y = (tpl_h / 6).max(1);

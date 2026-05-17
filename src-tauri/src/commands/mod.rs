@@ -23,19 +23,25 @@ pub fn get_templates(state: State<'_, AppState>) -> Vec<String> {
     let mut cache = state.template_cache.lock().unwrap();
     cache.clear(); // Làm mới Cache khi quét lại
 
-    if let Ok(entries) = fs::read_dir("templates") {
-        for entry in entries.flatten() {
-            let path = entry.path();
-            if let Some(ext) = path.extension() {
-                if ext == "png" {
-                    let name = path.file_name().unwrap().to_string_lossy().into_owned();
-                    names.push(name.clone());
-                    
-                    // Nạp luôn vào RAM
-                    if let Ok(img) = image::open(&path) {
-                        let (w, h) = img.dimensions();
-                        let data = Arc::new(img.to_rgb8().into_raw());
-                        cache.insert(name, CachedTemplate { dimensions: (w, h), data });
+    // Quét 2 thư mục con theo danh mục
+    let categories = ["buttons", "seeds"];
+    for cat in &categories {
+        let dir_path = format!("templates/{}", cat);
+        if let Ok(entries) = fs::read_dir(&dir_path) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if let Some(ext) = path.extension() {
+                    if ext == "png" {
+                        let file_name = path.file_name().unwrap().to_string_lossy().into_owned();
+                        let cache_key = format!("{}/{}", cat, file_name);
+                        names.push(cache_key.clone());
+                        
+                        // Nạp vào RAM Cache
+                        if let Ok(img) = image::open(&path) {
+                            let (w, h) = img.dimensions();
+                            let data = Arc::new(img.to_rgb8().into_raw());
+                            cache.insert(cache_key, CachedTemplate { dimensions: (w, h), data });
+                        }
                     }
                 }
             }
@@ -242,8 +248,14 @@ pub async fn test_template(state: State<'_, AppState>, name: String) -> std::res
         let norm_h = norm.height();
         let screen_rgba = norm.into_raw();
 
+        let max_scan_w = if name.starts_with("seeds/") {
+            Some((norm_w / 2) as usize)
+        } else {
+            None
+        };
+
         let start_recog = std::time::Instant::now();
-        if let Some((fx, fy, score)) = FastRecognizer::find_template_step(&screen_rgba, norm_w as usize, norm_h as usize, 4, &template_data, tw as usize, th as usize, 25) {
+        if let Some((fx, fy, score)) = FastRecognizer::find_template_step(&screen_rgba, norm_w as usize, norm_h as usize, 4, &template_data, tw as usize, th as usize, 25, max_scan_w) {
             let recog_time = start_recog.elapsed().as_millis();
             let tx = (fx as f64 + tw as f64 / 2.0) as i32;
             let ty = (fy as f64 + th as f64 / 2.0) as i32;
@@ -361,18 +373,23 @@ pub async fn test_all_templates(state: State<'_, AppState>) -> std::result::Resu
     // 2. Lấy toàn bộ các templates trong thư mục hoặc cache
     let templates: Vec<(String, Arc<Vec<u8>>, u32, u32)> = {
         let mut cache = state.template_cache.lock().unwrap();
-        // Nếu cache trống thì nạp lại
+        // Nếu cache trống thì nạp lại theo danh mục
         if cache.is_empty() {
-            if let Ok(entries) = fs::read_dir("templates") {
-                for entry in entries.flatten() {
-                    let path = entry.path();
-                    if let Some(ext) = path.extension() {
-                        if ext == "png" {
-                            let name = path.file_name().unwrap().to_string_lossy().into_owned();
-                            if let Ok(img) = image::open(&path) {
-                                let (w, h) = img.dimensions();
-                                let data = Arc::new(img.to_rgb8().into_raw());
-                                cache.insert(name.clone(), CachedTemplate { dimensions: (w, h), data });
+            let categories = ["buttons", "seeds"];
+            for cat in &categories {
+                let dir_path = format!("templates/{}", cat);
+                if let Ok(entries) = fs::read_dir(&dir_path) {
+                    for entry in entries.flatten() {
+                        let path = entry.path();
+                        if let Some(ext) = path.extension() {
+                            if ext == "png" {
+                                let file_name = path.file_name().unwrap().to_string_lossy().into_owned();
+                                let cache_key = format!("{}/{}", cat, file_name);
+                                if let Ok(img) = image::open(&path) {
+                                    let (w, h) = img.dimensions();
+                                    let data = Arc::new(img.to_rgb8().into_raw());
+                                    cache.insert(cache_key, CachedTemplate { dimensions: (w, h), data });
+                                }
                             }
                         }
                     }
@@ -387,9 +404,15 @@ pub async fn test_all_templates(state: State<'_, AppState>) -> std::result::Resu
     let mut found_count = 0;
 
     for (name, template_data, tw, th) in templates {
+        let max_scan_w = if name.starts_with("seeds/") {
+            Some((norm_w / 2) as usize)
+        } else {
+            None
+        };
+
         if let Some((fx, fy, score)) = FastRecognizer::find_template_step(
             &screen_rgba, norm_w as usize, norm_h as usize, 4, 
-            &template_data, tw as usize, th as usize, 25
+            &template_data, tw as usize, th as usize, 25, max_scan_w
         ) {
             let tx = (fx as f64 + tw as f64 / 2.0) as i32;
             let ty = (fy as f64 + th as f64 / 2.0) as i32;
