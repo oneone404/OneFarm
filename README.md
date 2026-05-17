@@ -21,6 +21,7 @@ Bộ công cụ Auto-Farm tối ưu hóa cho LDPlayer, tập trung vào tốc đ
 - **Bo loc nhanh 9 diem chat luong cao (9-Point Grid Quick Test)**: Nang cap bo loc kiem tra nhanh tu 5 diem len 9 diem nam xen ke giua tam va bien de loai bo ngay lap tuc cac ung vien gia o cac vung nen kem phang cua game ma khong can chay SAD, day toc do quet khi that bai nhanh gap 5-10 lan.
 - **Tinh nang Test All kiem tra toan bo anh mau (Comprehensive Template Dry-Run)**: Tich hop tinh nang Test All chup dung 1 khung hinh tu duy nhat tu GPU, sau do chay quet song song toan bo 16 anh mau dang nap trong RAM Cache va xuat log dong thoi ra console ve toa do thuc, toa do scaled va diem so (score) cua tung anh mau de ho tro check loi giao dien cuc ky nhanh chong va truc quan.
 - **Phan loai Danh muc & Gioi han vung quet (Categorized Search Bounding)**: Ho tro tu dong chia nhom anh mau thanh `buttons/` (quet toan man hinh) va `seeds/` (quet gioi han dung 1 nua ben trai man hinh). Giup giam thoi gian quet hat giong xuong mot nua ma van dam bao khong bao gio bi lech hay click nham.
+- **Ngoc phan biet anh gan giong nhau (Auto Strict Thresholding)**: Ho tro tu dong kiem tra tu khoa `_strict` trong ten file anh mau. Neu anh co ten chua `_strict` (vi du: `apple_strict.png`), he thong se tu dong that chat sai so tu `25` xuong `12` de phan biet cac loai trai cay co mau sac va kieu dang tuong dong (nhu Tao vs Ca Chua), triet tieu hoan toan rui ro nhan dien sai.
 
 ## 🛠️ Hướng dẫn sử dụng:
 1. Mở LDPlayer (nên dùng LDPlayer 9).
