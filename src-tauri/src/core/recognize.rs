@@ -13,10 +13,14 @@ impl FastRecognizer {
         for y in 0..img_h - tpl_h {
             for x in 0..img_w - tpl_w {
                 let mut quick_possible = true;
+                let inset_x = (tpl_w / 6).max(1);
+                let inset_y = (tpl_h / 6).max(1);
                 let test_points = [
-                    (0, 0), (tpl_w - 1, 0), 
+                    (inset_x, inset_y), 
+                    (tpl_w - 1 - inset_x, inset_y), 
                     (tpl_w / 2, tpl_h / 2), 
-                    (0, tpl_h - 1), (tpl_w - 1, tpl_h - 1)
+                    (inset_x, tpl_h - 1 - inset_y), 
+                    (tpl_w - 1 - inset_x, tpl_h - 1 - inset_y)
                 ];
 
                 for (tx, ty) in test_points {
