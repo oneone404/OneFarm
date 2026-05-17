@@ -8,13 +8,10 @@ impl FastRecognizer {
     ) -> Option<(usize, usize, u32)> {
         if tpl_w > img_w || tpl_h > img_h { return None; }
 
-        // Tăng threshold lên một chút cho các trường hợp biên
         let adjusted_threshold = threshold;
 
         for y in 0..img_h - tpl_h {
             for x in 0..img_w - tpl_w {
-                // 1. Kiểm tra nhanh (Quick Check) tại 5 điểm vàng: 4 góc và tâm
-                // Đây là bước lọc cực nhanh để loại bỏ 99% vùng không khớp
                 let mut quick_possible = true;
                 let test_points = [
                     (0, 0), (tpl_w - 1, 0), 
@@ -26,7 +23,6 @@ impl FastRecognizer {
                     let img_idx = ((y + ty) * img_w + (x + tx)) * img_stride;
                     let tpl_idx = (ty * tpl_w + tx) * 3;
                     
-                    // Tính cường độ sáng (Luminance) để nhạy hơn với ảnh đen trắng
                     let img_gray = (img_rgb[img_idx] as i32 + img_rgb[img_idx+1] as i32 + img_rgb[img_idx+2] as i32) / 3;
                     let tpl_gray = (tpl_rgb[tpl_idx] as i32 + tpl_rgb[tpl_idx+1] as i32 + tpl_rgb[tpl_idx+2] as i32) / 3;
                     
@@ -38,8 +34,6 @@ impl FastRecognizer {
 
                 if quick_possible {
                     let mut total_sad: u64 = 0;
-                    // Quét nhảy cách pixel (step 2) để tăng tốc độ cho ảnh lớn, 
-                    // nhưng vẫn đảm bảo độ chính xác nhờ thuật toán tính trung bình.
                     let skip = if tpl_w * tpl_h > 5000 { 2 } else { 1 };
                     let mut count = 0;
 
@@ -48,13 +42,10 @@ impl FastRecognizer {
                             let img_idx = ((y + ty) * img_w + (x + tx)) * img_stride;
                             let tpl_idx = (ty * tpl_w + tx) * 3;
 
-                            // Thuật toán so sánh Hybrid: Ưu tiên sự chênh lệch tổng thể thay vì từng kênh lẻ
                             let r_diff = (img_rgb[img_idx] as i32 - tpl_rgb[tpl_idx] as i32).abs();
                             let g_diff = (img_rgb[img_idx+1] as i32 - tpl_rgb[tpl_idx+1] as i32).abs();
                             let b_diff = (img_rgb[img_idx+2] as i32 - tpl_rgb[tpl_idx+2] as i32).abs();
                             
-                            // Đối với ảnh đen trắng, r_diff, g_diff, b_diff sẽ gần như bằng nhau.
-                            // Việc cộng trung bình giúp khử nhiễu từ giả lập cực tốt.
                             let diff = (r_diff + g_diff + b_diff) / 3;
                             total_sad += diff as u64;
                             count += 1;

@@ -45,7 +45,7 @@ impl AdbClient {
     pub fn shell(&self, serial: &str, shell_cmd: &str) -> std::io::Result<String> {
         let mut last_err = std::io::Error::new(std::io::ErrorKind::Other, "Unknown error");
         
-        for _ in 0..3 { // Thử lại 3 lần
+        for _ in 0..3 {
             match TcpStream::connect(format!("{}:{}", self.host, self.port)) {
                 Ok(mut stream) => {
                     let transport = format!("host:transport:{}", serial);

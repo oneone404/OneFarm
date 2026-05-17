@@ -11,11 +11,11 @@ use serde::{Serialize, Deserialize};
 use std::process::Command;
 use std::os::windows::process::CommandExt;
 
-mod capture;
-mod recognize_fast;
+mod core;
+mod emulator;
 
-use capture::WgcGrabber;
-use recognize_fast::FastRecognizer;
+use core::capture::WgcGrabber;
+use core::recognize::FastRecognizer;
 
 const BASE_W: u32 = 960;
 const BASE_H: u32 = 540;

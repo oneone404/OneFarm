@@ -63,8 +63,6 @@ impl WgcGrabber {
             let latest_frame = Arc::new(Mutex::new(None));
             let latest_frame_clone = latest_frame.clone();
             
-            // Tạo staging texture RIÊNG cho callback thread
-            // => Tránh xung đột thread-safety với D3D11 context
             let cb_context = context.clone();
 
             let staging_desc = D3D11_TEXTURE2D_DESC {
@@ -90,10 +88,8 @@ impl WgcGrabber {
                                 if let Ok(surface) = frame.Surface() {
                                     let access: IDirect3DDxgiInterfaceAccess = surface.cast().unwrap();
                                     if let Ok(texture) = access.GetInterface::<ID3D11Texture2D>() {
-                                        // Copy GPU -> Staging (trên callback thread)
                                         cb_context.CopyResource(&staging_texture, &texture);
                                         
-                                        // Map Staging -> CPU RAM
                                         let mut mapped = D3D11_MAPPED_SUBRESOURCE::default();
                                         if cb_context.Map(&staging_texture, 0, D3D11_MAP_READ, 0, Some(&mut mapped)).is_ok() {
                                             let row_pitch = mapped.RowPitch as usize;
@@ -131,7 +127,6 @@ impl WgcGrabber {
     }
 
     pub fn capture_frame(&self) -> Result<Vec<u8>> {
-        // Nếu đã có frame sẵn trong bộ nhớ => trả về NGAY LẬP TỨC
         {
             let lock = self.latest_frame.lock().unwrap();
             if let Some(data) = lock.as_ref() {
@@ -139,7 +134,6 @@ impl WgcGrabber {
             }
         }
 
-        // Chưa có frame (lần đầu khởi tạo) => đợi GPU gửi frame đầu tiên
         for _ in 0..20 {
             std::thread::sleep(std::time::Duration::from_millis(50));
             let lock = self.latest_frame.lock().unwrap();
@@ -163,9 +157,6 @@ impl WgcGrabber {
         }
     }
 }
-
-// COM reference counting tự giải phóng tài nguyên khi tất cả clone bị drop.
-// KHÔNG dùng Drop::drop vì Close() sẽ giết session cho MỌI clone.
 
 fn factory<T: RuntimeName, I: Interface>() -> Result<I> {
     unsafe {
