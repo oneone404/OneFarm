@@ -66,6 +66,7 @@ async function createDeviceRow(device, idx) {
  
     const rowLog = document.createElement('div');
     rowLog.className = 'row-log';
+    rowLog.style.display = 'none';
     rowLog.textContent = 'San sang';
  
     row.append(info, btnResize, btnCapture, select, btnTest, rowLog);
