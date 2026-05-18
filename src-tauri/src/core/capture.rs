@@ -18,6 +18,7 @@ pub struct WgcGrabber {
     latest_frame: Arc<Mutex<Option<Vec<u8>>>>,
     width: u32,
     height: u32,
+    closed: Arc<Mutex<bool>>,
 }
 
 impl WgcGrabber {
@@ -63,6 +64,9 @@ impl WgcGrabber {
             let latest_frame = Arc::new(Mutex::new(None));
             let latest_frame_clone = latest_frame.clone();
             
+            let closed = Arc::new(Mutex::new(false));
+            let closed_clone = closed.clone();
+            
             let cb_context = context.clone();
 
             let staging_desc = D3D11_TEXTURE2D_DESC {
@@ -83,6 +87,9 @@ impl WgcGrabber {
 
             frame_pool.FrameArrived(&windows::Foundation::TypedEventHandler::<Direct3D11CaptureFramePool, IInspectable>::new(
                 move |pool, _| {
+                    if let Ok(c) = closed_clone.lock() {
+                        if *c { return Ok(()); }
+                    }
                     if let Some(pool_ref) = (*pool).as_ref() {
                         if let Ok(frame) = pool_ref.TryGetNextFrame() {
                                 if let Ok(surface) = frame.Surface() {
@@ -122,11 +129,17 @@ impl WgcGrabber {
                 latest_frame,
                 width,
                 height,
+                closed,
             })
         }
     }
 
     pub fn capture_frame(&self) -> Result<Vec<u8>> {
+        if let Ok(c) = self.closed.lock() {
+            if *c {
+                return Err(Error::new(HRESULT(0x80004005u32 as i32), "Session đã bị ngắt kết nối."));
+            }
+        }
         {
             let lock = self.latest_frame.lock().unwrap();
             if let Some(data) = lock.as_ref() {
@@ -135,6 +148,11 @@ impl WgcGrabber {
         }
 
         for _ in 0..20 {
+            if let Ok(c) = self.closed.lock() {
+                if *c {
+                    return Err(Error::new(HRESULT(0x80004005u32 as i32), "Session đã bị ngắt kết nối."));
+                }
+            }
             std::thread::sleep(std::time::Duration::from_millis(50));
             let lock = self.latest_frame.lock().unwrap();
             if let Some(data) = lock.as_ref() {
@@ -149,6 +167,12 @@ impl WgcGrabber {
     }
 
     pub fn close(&self) {
+        if let Ok(mut c) = self.closed.lock() {
+            *c = true;
+        }
+        if let Ok(mut frame) = self.latest_frame.lock() {
+            *frame = None;
+        }
         if let Ok(closable) = self.session.cast::<windows::Foundation::IClosable>() {
             let _ = closable.Close();
         }

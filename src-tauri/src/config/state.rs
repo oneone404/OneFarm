@@ -1,5 +1,5 @@
 use std::sync::{Arc, Mutex};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use serde::{Serialize, Deserialize};
 use crate::core::capture::WgcGrabber;
 
@@ -21,4 +21,6 @@ pub struct AppState {
     pub grabbers: Mutex<HashMap<isize, WgcGrabber>>,
     pub active_device: Mutex<Option<DeviceInfo>>,
     pub template_cache: Mutex<HashMap<String, CachedTemplate>>,
+    pub cancelled_devices: Mutex<HashSet<isize>>,
+    pub seed_purchase_history: Mutex<HashMap<String, u32>>,
 }

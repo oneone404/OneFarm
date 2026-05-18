@@ -38,15 +38,49 @@ function initWindowControls() {
     });
 }
 
+async function refreshAll() {
+    log('Đang làm mới dữ liệu (Templates & Devices)...', 'info');
+    await loadTemplates();
+    
+    // 1. Quét thiết bị và thực hiện Resize (ngắt session cũ) trước
+    try {
+        const devices = await invoke('get_devices');
+        if (devices.length > 0) {
+            log('Đang tự động căn chuẩn độ phân giải cho tất cả giả lập (960x540)...', 'info');
+            for (const device of devices) {
+                try {
+                    await invoke('set_active_device', { device });
+                    const res = await invoke('resize_ld');
+                    log(`[${device.title}] ${res}`, 'success');
+                } catch (err) {
+                    console.error(`[${device.title}] Không thể tự động resize: ${err}`);
+                }
+            }
+        }
+    } catch (err) {
+        log('Lỗi quét thiết bị để resize: ' + err, 'error');
+    }
+
+    // 2. Load và render giao diện thiết bị sau (để hiển thị đúng trạng thái session đã ngắt)
+    await loadDevices();
+}
+
 function initAppLogic() {
     const btnRefresh = document.getElementById('btn-refresh-devices');
     const themeToggle = document.getElementById('theme-toggle');
+    const btnRestart = document.getElementById('btn-restart-app');
 
     if (btnRefresh) {
-        btnRefresh.addEventListener('click', async () => {
-            log('Đang làm mới dữ liệu (Templates & Devices)...', 'info');
-            await loadTemplates();
-            await loadDevices();
+        btnRefresh.addEventListener('click', refreshAll);
+    }
+    if (btnRestart) {
+        btnRestart.addEventListener('click', async () => {
+            log('Đang chạy lại ứng dụng để cập nhật mã nguồn mới...', 'info');
+            try {
+                await invoke('restart_app');
+            } catch (err) {
+                log('Lỗi khởi động lại ứng dụng: ' + err, 'error');
+            }
         });
     }
     if (themeToggle) {
@@ -54,8 +88,7 @@ function initAppLogic() {
         initTheme();
     }
 
-    loadTemplates().then(loadDevices);
-    log('Hệ thống OneFarm Multi đã sẵn sàng.', 'success');
+    log('Hệ thống OneFarm Multi đã sẵn sàng. Vui lòng bấm nút Làm mới để quét thiết bị.', 'success');
 }
 
 function initKeyboardBlocker() {
