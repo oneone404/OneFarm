@@ -89,3 +89,10 @@ Bộ công cụ Auto-Farm tối ưu hóa cho LDPlayer, tập trung vào tốc đ
 
 ---
 *Ghi chú: Luôn đảm bảo ldconsole.exe nằm đúng đường dẫn trong cấu hình.*
+
+---
+
+## 💾 Nhánh Sao Lưu Ổn Định & Khôi Phục (Backup & Revert)
+* **Nhánh sao lưu phiên bản Tauri**: Toàn bộ mã nguồn giao diện Tauri ổn định hiện tại (tích hợp Auto-Login động, NPC Dialogue Bypass 3 clicks/300ms,...) đã được đẩy lên nhánh độc lập **`backup/tauri-dialogue-bypass`** trên GitHub.
+* **Hướng dẫn khôi phục**: Trong trường hợp quá trình thử nghiệm giao diện siêu nhẹ mới gặp sự cố và bạn muốn quay trở lại phiên bản Tauri này, hãy làm theo các bước hướng dẫn chi tiết tại tệp [REVERT_INSTRUCTIONS.md](file:///c:/Users/CBS/Documents/App/Farm/REVERT_INSTRUCTIONS.md) để khôi phục đè hoàn toàn nhánh main một cách an toàn và tự động.
+
