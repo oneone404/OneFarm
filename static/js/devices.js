@@ -59,11 +59,11 @@ async function createDeviceRow(device, idx) {
 
     // 3. Cột STATUS (Trạng thái và Log tích hợp)
     const tdStatus = document.createElement('td');
-    tdStatus.style.cssText = 'padding: 8px 14px; vertical-align: middle;';
+    tdStatus.style.cssText = 'padding: 8px 14px; vertical-align: middle; width: 200px;';
     const rowLog = document.createElement('div');
     rowLog.className = 'row-log';
-    rowLog.style.cssText = 'font-size: 0.72rem; font-weight: 600; color: var(--text-secondary); max-width: 140px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;';
-    rowLog.textContent = 'Sẵn sàng';
+    rowLog.style.cssText = 'font-size: 0.72rem; font-weight: 600; color: var(--text-secondary); min-width: 180px; max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;';
+    rowLog.textContent = isSessionActive ? 'Đã kết nối' : 'Sẵn sàng';
     tdStatus.appendChild(rowLog);
     row.appendChild(tdStatus);
 
@@ -77,20 +77,14 @@ async function createDeviceRow(device, idx) {
     const toggleSwitch = document.createElement('div');
     toggleSwitch.className = 'toggle-switch';
     
-    const switchLabel = document.createElement('span');
-    switchLabel.className = 'switch-label';
-    
     if (isSessionActive) {
         toggleSwitch.classList.add('active');
-        switchLabel.classList.add('active');
-        switchLabel.textContent = 'Connected';
     } else {
-        switchLabel.textContent = 'Ready';
         row.classList.add('disabled-row');
     }
     
-    switchContainer.append(toggleSwitch, switchLabel);
-    bindBadgeEvents(toggleSwitch, switchLabel, device, row);
+    switchContainer.append(toggleSwitch);
+    bindBadgeEvents(toggleSwitch, device, row);
     tdConnect.appendChild(switchContainer);
     row.appendChild(tdConnect);
 
@@ -186,6 +180,29 @@ async function createDeviceRow(device, idx) {
         }
     }
 
+    async function executeBuyTools() {
+        if (isExecuting || btnRunScript.dataset.running !== 'true') return;
+        isExecuting = true;
+        rowLog.textContent = 'Mua c.cụ...';
+        try {
+            await invoke('set_active_device', { device });
+            const targets = savedConfig.selected_tools || [];
+            log(`[${device.title}] Bắt đầu kịch bản Mua công cụ: ${targets.join(', ')}`, 'info');
+            const res = await invoke('run_buy_tools_script', { targetTools: targets });
+            log(res, 'success');
+            rowLog.textContent = 'Mua c.cụ Xong';
+        } catch (err) {
+            log(`[${device.title}] Lỗi kịch bản Mua công cụ: ${err}`, 'error');
+            rowLog.textContent = 'Mua c.cụ Lỗi';
+        } finally {
+            isExecuting = false;
+            await updateSessionBadge(device, row);
+            if (btnRunScript.dataset.running === 'true') {
+                rowLog.textContent = 'Chờ Auto...';
+            }
+        }
+    }
+
     function stopScriptLoop() {
         if (loopInterval) { clearInterval(loopInterval); loopInterval = null; }
         btnRunScript.dataset.running = 'false';
@@ -218,17 +235,25 @@ async function createDeviceRow(device, idx) {
 
         if (act === 'run_script') {
             const targets = savedConfig.selected_seeds || [];
+            const targetTools = savedConfig.selected_tools || [];
             const enableBuy = savedConfig.enable_buy_seeds !== false;
+            const enableBuyTools = savedConfig.enable_buy_tools !== false;
             const enableHarvest = savedConfig.enable_harvest_sell !== false;
 
             if (enableBuy && targets.length === 0) {
-                log('Vui lòng mở cấu hình hạt giống (⚙️) và chọn ít nhất một loại!', 'error');
+                log('Vui lòng mở cấu hình (⚙️) và chọn ít nhất một loại hạt giống!', 'error');
                 rowLog.textContent = 'Lỗi cấu hình';
                 return;
             }
 
-            if (!enableBuy && !enableHarvest) {
-                log('Vui lòng mở cấu hình hạt giống (⚙️) và kích hoạt ít nhất một kịch bản hoạt động!', 'error');
+            if (enableBuyTools && targetTools.length === 0) {
+                log('Vui lòng mở cấu hình (⚙️) và chọn ít nhất một loại công cụ!', 'error');
+                rowLog.textContent = 'Lỗi cấu hình';
+                return;
+            }
+
+            if (!enableBuy && !enableHarvest && !enableBuyTools) {
+                log('Vui lòng mở cấu hình (⚙️) và kích hoạt ít nhất một kịch bản hoạt động!', 'error');
                 rowLog.textContent = 'Lỗi cấu hình';
                 return;
             }
@@ -242,7 +267,9 @@ async function createDeviceRow(device, idx) {
 
             lastHarvestTime = (savedConfig.enable_harvest_sell !== false) ? 0 : -1;
             let lastBuyTime = (savedConfig.enable_buy_seeds !== false) ? 0 : -1;
+            let lastBuyToolsTime = (savedConfig.enable_buy_tools !== false) ? 0 : -1;
             row.dataset.lastRunMinute = '';
+            row.dataset.lastRunToolsMinute = '';
 
             loopInterval = setInterval(async () => {
                 if (btnRunScript.dataset.running !== 'true') {
@@ -254,6 +281,7 @@ async function createDeviceRow(device, idx) {
 
                 // Đọc trực tiếp cấu hình in-memory động thời gian thực
                 const enableBuy = savedConfig.enable_buy_seeds !== false;
+                const enableBuyTools = savedConfig.enable_buy_tools !== false;
                 const enableHarvest = savedConfig.enable_harvest_sell !== false;
 
                 // Tự động điều chỉnh trạng thái kịch bản khi người dùng lưu thay đổi
@@ -269,8 +297,14 @@ async function createDeviceRow(device, idx) {
                     lastBuyTime = -1;
                 }
 
+                if (enableBuyTools && lastBuyToolsTime === -1) {
+                    lastBuyToolsTime = 0;
+                } else if (!enableBuyTools) {
+                    lastBuyToolsTime = -1;
+                }
+
                 // Nếu người dùng tắt toàn bộ kịch bản
-                if (!enableBuy && !enableHarvest) {
+                if (!enableBuy && !enableHarvest && !enableBuyTools) {
                     rowLog.textContent = 'Auto Tắt';
                     return;
                 }
@@ -294,7 +328,16 @@ async function createDeviceRow(device, idx) {
                     return;
                 }
 
-                // 3. Vòng lặp Mua hạt giống (cứ mỗi 5 phút đồng hồ tuyệt đối)
+                // 3. Chạy lượt đầu tiên của Mua công cụ
+                if (enableBuyTools && lastBuyToolsTime === 0) {
+                    await executeBuyTools();
+                    lastBuyToolsTime = Date.now();
+                    const currentMin = new Date().getMinutes();
+                    row.dataset.lastRunToolsMinute = String(currentMin);
+                    return;
+                }
+
+                // 4. Vòng lặp Mua hạt giống (cứ mỗi 5 phút đồng hồ tuyệt đối)
                 const dateObj = new Date();
                 const min = dateObj.getMinutes();
                 if (enableBuy && min % 5 === 0 && row.dataset.lastRunMinute !== String(min)) {
@@ -303,38 +346,41 @@ async function createDeviceRow(device, idx) {
                     return;
                 }
 
-                // 4. Cập nhật dòng trạng thái chờ đếm ngược cực kỳ đẹp mắt
-                if (enableBuy && enableHarvest) {
-                    let nextBuyMin = Math.ceil((min + 0.001) / 5) * 5;
-                    const tgt = new Date(dateObj);
-                    if (nextBuyMin >= 60) { tgt.setHours(tgt.getHours() + 1); tgt.setMinutes(0); }
-                    else { tgt.setMinutes(nextBuyMin); }
-                    tgt.setSeconds(0); tgt.setMilliseconds(0);
-
-                    const diff = Math.max(0, Math.ceil((tgt - dateObj) / 1000));
-                    const cdStr = `${Math.floor(diff / 60)}:${String(diff % 60).padStart(2, '0')}`;
-
-                    const nextHarvestMs = Math.max(0, harvestIntervalMs - (now - lastHarvestTime));
-                    const harvestCDStr = `${Math.ceil(nextHarvestMs / 60000)}m`;
-
-                    rowLog.textContent = `Chờ Auto (Mua: ${cdStr} | TH: ${harvestCDStr})`;
-                } else if (enableBuy) {
-                    let nextBuyMin = Math.ceil((min + 0.001) / 5) * 5;
-                    const tgt = new Date(dateObj);
-                    if (nextBuyMin >= 60) { tgt.setHours(tgt.getHours() + 1); tgt.setMinutes(0); }
-                    else { tgt.setMinutes(nextBuyMin); }
-                    tgt.setSeconds(0); tgt.setMilliseconds(0);
-
-                    const diff = Math.max(0, Math.ceil((tgt - dateObj) / 1000));
-                    const cdStr = `${Math.floor(diff / 60)}:${String(diff % 60).padStart(2, '0')}`;
-
-                    rowLog.textContent = `Chờ Auto (Mua: ${cdStr})`;
-                } else if (enableHarvest) {
-                    const nextHarvestMs = Math.max(0, harvestIntervalMs - (now - lastHarvestTime));
-                    const harvestCDStr = `${Math.ceil(nextHarvestMs / 60000)}m`;
-
-                    rowLog.textContent = `Chờ Auto (TH: ${harvestCDStr})`;
+                // 5. Vòng lặp Mua công cụ (chạy đúng vào phút 00 và 30 của đồng hồ hệ thống)
+                if (enableBuyTools && (min === 0 || min === 30) && row.dataset.lastRunToolsMinute !== String(min)) {
+                    row.dataset.lastRunToolsMinute = String(min);
+                    await executeBuyTools();
+                    return;
                 }
+
+                // 6. Cập nhật dòng trạng thái chờ đếm ngược cực kỳ đẹp mắt
+                let statusParts = [];
+                if (enableBuy) {
+                    let nextBuyMin = Math.ceil((min + 0.001) / 5) * 5;
+                    const tgt = new Date(dateObj);
+                    if (nextBuyMin >= 60) { tgt.setHours(tgt.getHours() + 1); tgt.setMinutes(0); }
+                    else { tgt.setMinutes(nextBuyMin); }
+                    tgt.setSeconds(0); tgt.setMilliseconds(0);
+                    const diff = Math.max(0, Math.ceil((tgt - dateObj) / 1000));
+                    const cdStr = `${Math.floor(diff / 60)}:${String(diff % 60).padStart(2, '0')}`;
+                    statusParts.push(`Hạt: ${cdStr}`);
+                }
+                if (enableBuyTools) {
+                    let nextToolMin = min < 30 ? 30 : 60;
+                    const tgt = new Date(dateObj);
+                    if (nextToolMin === 60) { tgt.setHours(tgt.getHours() + 1); tgt.setMinutes(0); }
+                    else { tgt.setMinutes(nextToolMin); }
+                    tgt.setSeconds(0); tgt.setMilliseconds(0);
+                    const diff = Math.max(0, Math.ceil((tgt - dateObj) / 1000));
+                    const cdStr = `${Math.floor(diff / 60)}:${String(diff % 60).padStart(2, '0')}`;
+                    statusParts.push(`C.Cụ: ${cdStr}`);
+                }
+                if (enableHarvest) {
+                    const nextHarvestMs = Math.max(0, harvestIntervalMs - (now - lastHarvestTime));
+                    const harvestCDStr = `${Math.ceil(nextHarvestMs / 60000)}m`;
+                    statusParts.push(`TH: ${harvestCDStr}`);
+                }
+                rowLog.textContent = `Chờ Auto (${statusParts.join(' | ')})`;
             }, 1000);
         } else {
             // Chạy các hành động chẩn đoán thông thường qua _runAbortable
@@ -400,46 +446,41 @@ function _makeBtn(cls, label, onclick) {
 }
 
 // ─── SESSION BADGE ────────────────────────────────────────────────────────────
-function bindBadgeEvents(toggleSwitch, switchLabel, device, row) {
+function bindBadgeEvents(toggleSwitch, device, row) {
     const triggerToggle = async () => {
         if (toggleSwitch.classList.contains('connecting')) return;
+        const rowLog = row.querySelector('.row-log');
 
         // Nếu đang Inactive (Chưa Connected) -> Tiến hành kết nối
         if (!toggleSwitch.classList.contains('active')) {
             toggleSwitch.className = 'toggle-switch connecting';
-            switchLabel.textContent = 'Connecting...';
-            switchLabel.className = 'switch-label';
+            if (rowLog) rowLog.textContent = 'Đang kết nối...';
             try {
                 await invoke('connect_session', { device });
                 toggleSwitch.className = 'toggle-switch active';
-                switchLabel.className = 'switch-label active';
-                switchLabel.textContent = 'Connected';
                 row.classList.remove('disabled-row');
+                if (rowLog) rowLog.textContent = 'Đã kết nối';
                 log(`[${device.title}] Đã kết nối thành công session mới.`, 'success');
             } catch (err) {
                 toggleSwitch.className = 'toggle-switch';
-                switchLabel.className = 'switch-label';
-                switchLabel.textContent = 'Ready';
+                if (rowLog) rowLog.textContent = 'Kết nối thất bại';
                 log(`[${device.title}] Kết nối thất bại: ${err}`, 'error');
             }
         } 
         // Nếu đang Active (Đã Connected) -> Tiến hành ngắt kết nối
         else {
             toggleSwitch.className = 'toggle-switch connecting';
-            switchLabel.textContent = 'Disconnecting...';
-            switchLabel.className = 'switch-label';
+            if (rowLog) rowLog.textContent = 'Đang ngắt kết nối...';
             try {
                 await invoke('disconnect_session', { handle: device.handle });
                 toggleSwitch.className = 'toggle-switch';
-                switchLabel.className = 'switch-label';
-                switchLabel.textContent = 'Ready';
                 row.classList.add('disabled-row');
+                if (rowLog) rowLog.textContent = 'Sẵn sàng';
                 if (row.cleanupAutoInterval) row.cleanupAutoInterval();
                 log(`[${device.title}] Đã ngắt kết nối session.`, 'info');
             } catch (err) {
                 toggleSwitch.className = 'toggle-switch active';
-                switchLabel.className = 'switch-label active';
-                switchLabel.textContent = 'Connected';
+                if (rowLog) rowLog.textContent = 'Ngắt kết nối thất bại';
                 log(`[${device.title}] Ngắt kết nối thất bại: ${err}`, 'error');
             }
         }
@@ -451,20 +492,18 @@ function bindBadgeEvents(toggleSwitch, switchLabel, device, row) {
 async function updateSessionBadge(device, row) {
     const isActive = await invoke('check_session', { handle: device.handle });
     const toggleSwitch = row.querySelector('.toggle-switch');
-    const switchLabel = row.querySelector('.switch-label');
-    if (!toggleSwitch || !switchLabel) return;
+    const rowLog = row.querySelector('.row-log');
+    if (!toggleSwitch) return;
     
     if (isActive) {
         toggleSwitch.className = 'toggle-switch active';
-        switchLabel.className = 'switch-label active';
-        switchLabel.textContent = 'Connected';
         row.classList.remove('disabled-row');
+        if (rowLog) rowLog.textContent = 'Đã kết nối';
     } else {
         toggleSwitch.className = 'toggle-switch';
-        switchLabel.className = 'switch-label';
-        switchLabel.textContent = 'Ready';
         row.classList.add('disabled-row');
+        if (rowLog) rowLog.textContent = 'Sẵn sàng';
         if (row.cleanupAutoInterval) row.cleanupAutoInterval();
     }
-    bindBadgeEvents(toggleSwitch, switchLabel, device, row);
+    bindBadgeEvents(toggleSwitch, device, row);
 }

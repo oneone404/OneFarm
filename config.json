@@ -2,7 +2,12 @@
   "selected_seeds": [
     "seeds/carrot.png",
     "seeds/coconut.png",
-    "seeds/strawberry.png"
+    "seeds/pumpkin.png",
+    "seeds/strawberry.png",
+    "seeds/watermelon.png"
+  ],
+  "selected_tools": [
+    "tools/voi3.png"
   ],
   "button_timeout_secs": 5,
   "click_delay_ms": 1000,
@@ -11,6 +16,7 @@
   "harvest_loop_count": 2,
   "sell_loop_count": 2,
   "enable_buy_seeds": true,
+  "enable_buy_tools": true,
   "enable_harvest_sell": true,
   "enable_auto_login": true,
   "game_launch_delay_secs": 60

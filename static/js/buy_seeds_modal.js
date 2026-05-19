@@ -1,10 +1,12 @@
 // ─── SVG ICONS ───────────────────────────────────────────────────────────────
 const SVG_TRASH = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`;
 const SVG_HISTORY = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`;
+const SVG_TOOL = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>`;
 
-// ─── MODAL: CẤU HÌNH TỔNG HỢP (bao gồm Cài đặt chung + Chọn hạt giống + Lịch sử mua) ──
+// ─── MODAL: CẤU HÌNH TỔNG HỢP (bao gồm Cài đặt chung + Chọn hạt giống + Chọn công cụ + Lịch sử mua) ──
 // Mở bằng: openSeedConfigModal(device, () => savedConfig, (newConf) => { ... })
 async function openSeedConfigModal(device, getConfig, onSaved) {
+    if (document.querySelector('.modal-overlay')) return;
     let cfg = getConfig();
     
     // Create modal with blank header title
@@ -14,7 +16,7 @@ async function openSeedConfigModal(device, getConfig, onSaved) {
     const headerEl = overlay.querySelector('.modal-header');
     const titleEl = headerEl.querySelector('.modal-title');
     titleEl.innerHTML = ''; // Clear default title completely
-    titleEl.style.cssText = 'display:flex;gap:6px;align-items:center;flex:1;margin-right:16px;overflow-x:auto;';
+    titleEl.style.cssText = 'display:flex;gap:8px;align-items:center;flex:none;overflow-x:auto;';
 
     // Fetch the in-memory purchase history from backend state
     let inMemoryHistory = {};
@@ -24,26 +26,48 @@ async function openSeedConfigModal(device, getConfig, onSaved) {
         console.error('Lỗi lấy lịch sử mua hạt:', err);
     }
 
+    // Fetch customized seed name translations
+    let seedTranslations = {};
+    try {
+        seedTranslations = await invoke('get_seed_names');
+    } catch (err) {
+        console.error('Lỗi lấy danh sách dịch hạt giống:', err);
+    }
+
+    // Fetch customized tool name translations
+    let toolTranslations = {};
+    try {
+        toolTranslations = await invoke('get_tool_names');
+    } catch (err) {
+        console.error('Lỗi lấy danh sách dịch công cụ:', err);
+    }
+
     // ── TABS IN HEADER ───────────────────────────────────────────────────────
     // Tab 1: Cài đặt hệ thống (Mặc định active)
     const tab1 = document.createElement('div');
     tab1.className = 'modal-tab active';
-    tab1.style.cssText = 'display:flex;align-items:center;justify-content:center;gap:6px;padding:6px 10px;border-radius:6px;cursor:pointer;font-size:0.75rem;font-weight:700;color:var(--accent-color);background:var(--secondary-color);border:1.5px solid var(--border-color);transition:all 0.2s;user-select:none;flex:1;text-align:center;white-space:nowrap;';
-    tab1.innerHTML = `${SVG_GEAR}<span>Cài đặt chung</span>`;
+    tab1.style.cssText = 'display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:6px;cursor:pointer;color:var(--accent-color);background:var(--secondary-color);border:1.5px solid var(--border-color);transition:all 0.2s;user-select:none;flex:none;box-sizing:border-box;';
+    tab1.innerHTML = SVG_GEAR;
 
     // Tab 2: Chọn hạt giống
     const tab2 = document.createElement('div');
     tab2.className = 'modal-tab';
-    tab2.style.cssText = 'display:flex;align-items:center;justify-content:center;gap:6px;padding:6px 10px;border-radius:6px;cursor:pointer;font-size:0.75rem;font-weight:600;color:var(--text-secondary);background:transparent;border:1.5px solid transparent;transition:all 0.2s;user-select:none;flex:1;text-align:center;white-space:nowrap;';
-    tab2.innerHTML = `${SVG_SEED}<span>Chọn hạt giống</span>`;
+    tab2.style.cssText = 'display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:6px;cursor:pointer;color:var(--text-secondary);background:transparent;border:1.5px solid transparent;transition:all 0.2s;user-select:none;flex:none;box-sizing:border-box;';
+    tab2.innerHTML = SVG_SEED;
+
+    // Tab 4: Chọn công cụ
+    const tab4 = document.createElement('div');
+    tab4.className = 'modal-tab';
+    tab4.style.cssText = 'display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:6px;cursor:pointer;color:var(--text-secondary);background:transparent;border:1.5px solid transparent;transition:all 0.2s;user-select:none;flex:none;box-sizing:border-box;';
+    tab4.innerHTML = SVG_TOOL;
 
     // Tab 3: Lịch sử mua
     const tab3 = document.createElement('div');
     tab3.className = 'modal-tab';
-    tab3.style.cssText = 'display:flex;align-items:center;justify-content:center;gap:6px;padding:6px 10px;border-radius:6px;cursor:pointer;font-size:0.75rem;font-weight:600;color:var(--text-secondary);background:transparent;border:1.5px solid transparent;transition:all 0.2s;user-select:none;flex:1;text-align:center;white-space:nowrap;';
-    tab3.innerHTML = `${SVG_HISTORY}<span>Lịch sử mua</span>`;
+    tab3.style.cssText = 'display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:6px;cursor:pointer;color:var(--text-secondary);background:transparent;border:1.5px solid transparent;transition:all 0.2s;user-select:none;flex:none;box-sizing:border-box;';
+    tab3.innerHTML = SVG_HISTORY;
 
-    titleEl.append(tab1, tab2, tab3);
+    titleEl.append(tab1, tab2, tab4, tab3);
 
     // ── TABS CONTENT CONTAINER (GRID CO-LOCATION FOR HEIGHT MATCHING) ─────────
     const contentContainer = document.createElement('div');
@@ -58,18 +82,23 @@ async function openSeedConfigModal(device, getConfig, onSaved) {
     const content2 = document.createElement('div');
     content2.style.cssText = 'grid-area: 1 / 1 / 2 / 2; transition: opacity 0.2s ease, visibility 0.2s; visibility: hidden; opacity: 0; pointer-events: none;';
 
+    // content4: Chọn công cụ (ẩn mặc định)
+    const content4 = document.createElement('div');
+    content4.style.cssText = 'grid-area: 1 / 1 / 2 / 2; transition: opacity 0.2s ease, visibility 0.2s; visibility: hidden; opacity: 0; pointer-events: none;';
+
     // content3: Lịch sử mua (ẩn mặc định)
     const content3 = document.createElement('div');
     content3.style.cssText = 'grid-area: 1 / 1 / 2 / 2; transition: opacity 0.2s ease, visibility 0.2s; visibility: hidden; opacity: 0; pointer-events: none;';
 
-    contentContainer.append(content1, content2, content3);
+    contentContainer.append(content1, content2, content4, content3);
 
     // ── TAB 1 CONTENT: CÀI ĐẶT HỆ THỐNG ──────────────────────────────────────
-    const secScripts = _makeSection('Kịch bản hoạt động');
+    const secScripts = document.createElement('div');
+    secScripts.className = 'modal-section';
     secScripts.style.marginTop = '8px';
 
     const rowScripts = document.createElement('div');
-    rowScripts.style.cssText = 'display:flex;gap:24px;width:100%;box-sizing:border-box;margin-top:12px;';
+    rowScripts.style.cssText = 'display:flex;flex-direction:column;gap:12px;width:100%;box-sizing:border-box;';
 
     const labelBuy = document.createElement('label');
     labelBuy.style.cssText = 'display:flex;align-items:center;gap:8px;font-size:0.75rem;font-weight:700;color:var(--text-primary);cursor:pointer;';
@@ -77,8 +106,17 @@ async function openSeedConfigModal(device, getConfig, onSaved) {
     checkBuy.type = 'checkbox';
     checkBuy.checked = cfg.enable_buy_seeds ?? true;
     const spanBuy = document.createElement('span');
-    spanBuy.textContent = 'Kích hoạt Mua hạt';
+    spanBuy.textContent = 'Mua hạt';
     labelBuy.append(checkBuy, spanBuy);
+
+    const labelBuyTools = document.createElement('label');
+    labelBuyTools.style.cssText = 'display:flex;align-items:center;gap:8px;font-size:0.75rem;font-weight:700;color:var(--text-primary);cursor:pointer;';
+    const checkBuyTools = document.createElement('input');
+    checkBuyTools.type = 'checkbox';
+    checkBuyTools.checked = cfg.enable_buy_tools ?? true;
+    const spanBuyTools = document.createElement('span');
+    spanBuyTools.textContent = 'Mua công cụ';
+    labelBuyTools.append(checkBuyTools, spanBuyTools);
 
     const labelHarvest = document.createElement('label');
     labelHarvest.style.cssText = 'display:flex;align-items:center;gap:8px;font-size:0.75rem;font-weight:700;color:var(--text-primary);cursor:pointer;';
@@ -86,7 +124,7 @@ async function openSeedConfigModal(device, getConfig, onSaved) {
     checkHarvest.type = 'checkbox';
     checkHarvest.checked = cfg.enable_harvest_sell ?? true;
     const spanHarvest = document.createElement('span');
-    spanHarvest.textContent = 'Kích hoạt Thu hoạch & Bán';
+    spanHarvest.textContent = 'Thu hoạch & Bán';
     labelHarvest.append(checkHarvest, spanHarvest);
 
     const labelAutoLogin = document.createElement('label');
@@ -95,42 +133,26 @@ async function openSeedConfigModal(device, getConfig, onSaved) {
     checkAutoLogin.type = 'checkbox';
     checkAutoLogin.checked = cfg.enable_auto_login ?? true;
     const spanAutoLogin = document.createElement('span');
-    spanAutoLogin.textContent = 'Tự động Đăng nhập';
+    spanAutoLogin.textContent = 'Tự động Login';
     labelAutoLogin.append(checkAutoLogin, spanAutoLogin);
 
-    rowScripts.append(labelBuy, labelHarvest, labelAutoLogin);
+    rowScripts.append(labelBuy, labelBuyTools, labelHarvest, labelAutoLogin);
     secScripts.appendChild(rowScripts);
     content1.appendChild(secScripts);
 
-    const secSettings = _makeSection('Tham số nhận diện & điều khiển');
-    secSettings.style.marginTop = '14px';
+    const secParams = document.createElement('div');
+    secParams.className = 'modal-section';
+    secParams.style.marginTop = '18px';
 
     const gridParams = document.createElement('div');
-    gridParams.style.cssText = 'display:grid;grid-template-columns:repeat(4,1fr);gap:12px;width:100%;box-sizing:border-box;margin-top:12px';
+    gridParams.style.cssText = 'display:grid;grid-template-columns:repeat(2,1fr);gap:12px;width:100%;box-sizing:border-box;';
 
-    const timeout     = _makeNumberInput('Timeout (s)',    cfg.button_timeout_secs ?? 5,    1,   60);
-    const delay       = _makeNumberInput('Delay nút (ms)', cfg.click_delay_ms      ?? 1000, 100, 10000);
-    const threshold   = _makeNumberInput('Độ nhạy khớp',  cfg.match_threshold     ?? 25,   10,  50);
     const launchDelay = _makeNumberInput('Chờ mở game (s)', cfg.game_launch_delay_secs ?? 60, 5, 300);
-
-    gridParams.append(timeout.group, delay.group, threshold.group, launchDelay.group);
-    secSettings.appendChild(gridParams);
-    content1.appendChild(secSettings);
-
-    // ── CÀI ĐẶT THU HOẠCH & BÁN ─────────────────────────────────────────────
-    const secHarvest = _makeSection('Cấu hình Thu hoạch & Bán');
-    secHarvest.style.marginTop = '14px';
-
-    const gridHarvest = document.createElement('div');
-    gridHarvest.style.cssText = 'display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:100%;box-sizing:border-box;margin-top:12px';
-
     const harvestInterval = _makeNumberInput('Chu kỳ thu hoạch (phút)', cfg.harvest_interval_mins ?? 30, 1, 1440);
-    const harvestLoop     = _makeNumberInput('Lượt lặp thu hoạch',      cfg.harvest_loop_count     ?? 2,  1, 100);
-    const sellLoop        = _makeNumberInput('Lượt lặp bán',            cfg.sell_loop_count        ?? 2,  1, 100);
 
-    gridHarvest.append(harvestInterval.group, harvestLoop.group, sellLoop.group);
-    secHarvest.appendChild(gridHarvest);
-    content1.appendChild(secHarvest);
+    gridParams.append(launchDelay.group, harvestInterval.group);
+    secParams.appendChild(gridParams);
+    content1.appendChild(secParams);
 
     // ── TAB 2 CONTENT: CHỌN HẠT GIỐNG ────────────────────────────────────────
     const gridSeeds = document.createElement('div');
@@ -141,6 +163,7 @@ async function openSeedConfigModal(device, getConfig, onSaved) {
     const seedTemplates = availableTemplates.filter(t => t.startsWith('seeds/') && !t.startsWith('seeds/digits/'));
     seedTemplates.forEach(t => {
         const name  = t.replace('seeds/', '').replace('.png', '');
+        const displayName = seedTranslations[name] || name;
         const label = document.createElement('label');
         label.className = 'seed-checkbox-label';
         const input = document.createElement('input');
@@ -148,12 +171,35 @@ async function openSeedConfigModal(device, getConfig, onSaved) {
         input.value   = t;
         input.checked = !!(cfg.selected_seeds && cfg.selected_seeds.includes(t));
         const span = document.createElement('span');
-        span.textContent = name;
+        span.textContent = displayName;
         label.append(input, span);
         gridSeeds.appendChild(label);
     });
 
     content2.appendChild(gridSeeds);
+
+    // ── TAB 4 CONTENT: CHỌN CÔNG CỤ ──────────────────────────────────────────
+    const gridTools = document.createElement('div');
+    gridTools.className = 'seeds-grid';
+    gridTools.style.marginTop = '8px';
+
+    const toolTemplates = availableTemplates.filter(t => t.startsWith('tools/'));
+    toolTemplates.forEach(t => {
+        const name  = t.replace('tools/', '').replace('.png', '');
+        const displayName = toolTranslations[name] || name;
+        const label = document.createElement('label');
+        label.className = 'seed-checkbox-label';
+        const input = document.createElement('input');
+        input.type    = 'checkbox';
+        input.value   = t;
+        input.checked = !!(cfg.selected_tools && cfg.selected_tools.includes(t));
+        const span = document.createElement('span');
+        span.textContent = displayName;
+        label.append(input, span);
+        gridTools.appendChild(label);
+    });
+
+    content4.appendChild(gridTools);
 
     // ── TAB 3 CONTENT: LỊCH SỬ MUA ───────────────────────────────────────────
     const historyContainer = document.createElement('div');
@@ -169,24 +215,28 @@ async function openSeedConfigModal(device, getConfig, onSaved) {
         if (entries.length === 0) {
             const emptyEl = document.createElement('div');
             emptyEl.style.cssText = 'font-size:0.75rem;font-weight:600;color:var(--text-secondary);text-align:center;padding:24px 8px;border:1.5px dashed var(--border-color);border-radius:6px;background:var(--secondary-color);line-height:1.4;';
-            emptyEl.textContent = 'Chưa mua hạt giống nào trong phiên làm việc này. Hãy khởi chạy kịch bản mua để tích lũy thống kê!';
+            emptyEl.textContent = 'Chưa có lịch sử';
             historyContainer.appendChild(emptyEl);
         } else {
             // Sort entries alphabetically
             entries.sort((a, b) => a[0].localeCompare(b[0]));
-            entries.forEach(([seed, qty]) => {
-                const name = seed.replace('seeds/', '').replace('.png', '');
+            entries.forEach(([itemKey, qty]) => {
+                const isTool = itemKey.startsWith('tools/');
+                const rawName = isTool 
+                    ? itemKey.replace('tools/', '').replace('.png', '') 
+                    : itemKey.replace('seeds/', '').replace('.png', '');
+                const name = isTool ? (toolTranslations[rawName] || rawName) : (seedTranslations[rawName] || rawName);
                 
                 const item = document.createElement('div');
                 item.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border:1.5px solid var(--border-color);border-radius:6px;background:var(--secondary-color);transition:all 0.2s;';
                 
                 const left = document.createElement('div');
                 left.style.cssText = 'display:flex;align-items:center;gap:8px;font-size:0.75rem;font-weight:700;color:var(--text-primary);text-transform:capitalize;';
-                left.innerHTML = `${SVG_SEED}<span>${name}</span>`;
+                left.innerHTML = `${isTool ? SVG_TOOL : SVG_SEED}<span>${name}</span>`;
 
                 const right = document.createElement('div');
                 right.style.cssText = 'background:var(--accent-color);color:#ffffff;padding:3px 10px;border-radius:12px;font-size:0.7rem;font-weight:700;letter-spacing:0.5px;';
-                right.textContent = `${qty} hạt`;
+                right.textContent = `${qty} ${isTool ? 'cái' : 'hạt'}`;
 
                 item.append(left, right);
                 historyContainer.appendChild(item);
@@ -237,28 +287,18 @@ async function openSeedConfigModal(device, getConfig, onSaved) {
         tab1.style.borderColor = 'var(--border-color)';
         tab1.style.fontWeight = '700';
 
-        tab2.style.color = 'var(--text-secondary)';
-        tab2.style.background = 'transparent';
-        tab2.style.borderColor = 'transparent';
-        tab2.style.fontWeight = '600';
-
-        tab3.style.color = 'var(--text-secondary)';
-        tab3.style.background = 'transparent';
-        tab3.style.borderColor = 'transparent';
-        tab3.style.fontWeight = '600';
+        [tab2, tab4, tab3].forEach(t => {
+            t.style.color = 'var(--text-secondary)';
+            t.style.background = 'transparent';
+            t.style.borderColor = 'transparent';
+            t.style.fontWeight = '600';
+        });
 
         // Animate visibility and opacity for stable container layout height
-        content1.style.visibility = 'visible';
-        content1.style.opacity = '1';
-        content1.style.pointerEvents = 'auto';
-
-        content2.style.visibility = 'hidden';
-        content2.style.opacity = '0';
-        content2.style.pointerEvents = 'none';
-
-        content3.style.visibility = 'hidden';
-        content3.style.opacity = '0';
-        content3.style.pointerEvents = 'none';
+        content1.style.visibility = 'visible'; content1.style.opacity = '1'; content1.style.pointerEvents = 'auto';
+        content2.style.visibility = 'hidden';  content2.style.opacity = '0';  content2.style.pointerEvents = 'none';
+        content4.style.visibility = 'hidden';  content4.style.opacity = '0';  content4.style.pointerEvents = 'none';
+        content3.style.visibility = 'hidden';  content3.style.opacity = '0';  content3.style.pointerEvents = 'none';
     };
 
     tab2.onclick = () => {
@@ -268,28 +308,39 @@ async function openSeedConfigModal(device, getConfig, onSaved) {
         tab2.style.borderColor = 'var(--border-color)';
         tab2.style.fontWeight = '700';
 
-        tab1.style.color = 'var(--text-secondary)';
-        tab1.style.background = 'transparent';
-        tab1.style.borderColor = 'transparent';
-        tab1.style.fontWeight = '600';
-
-        tab3.style.color = 'var(--text-secondary)';
-        tab3.style.background = 'transparent';
-        tab3.style.borderColor = 'transparent';
-        tab3.style.fontWeight = '600';
+        [tab1, tab4, tab3].forEach(t => {
+            t.style.color = 'var(--text-secondary)';
+            t.style.background = 'transparent';
+            t.style.borderColor = 'transparent';
+            t.style.fontWeight = '600';
+        });
 
         // Animate visibility and opacity for stable container layout height
-        content2.style.visibility = 'visible';
-        content2.style.opacity = '1';
-        content2.style.pointerEvents = 'auto';
+        content2.style.visibility = 'visible'; content2.style.opacity = '1'; content2.style.pointerEvents = 'auto';
+        content1.style.visibility = 'hidden';  content1.style.opacity = '0';  content1.style.pointerEvents = 'none';
+        content4.style.visibility = 'hidden';  content4.style.opacity = '0';  content4.style.pointerEvents = 'none';
+        content3.style.visibility = 'hidden';  content3.style.opacity = '0';  content3.style.pointerEvents = 'none';
+    };
 
-        content1.style.visibility = 'hidden';
-        content1.style.opacity = '0';
-        content1.style.pointerEvents = 'none';
+    tab4.onclick = () => {
+        // Tab 4 Active - Pill styling
+        tab4.style.color = 'var(--accent-color)';
+        tab4.style.background = 'var(--secondary-color)';
+        tab4.style.borderColor = 'var(--border-color)';
+        tab4.style.fontWeight = '700';
 
-        content3.style.visibility = 'hidden';
-        content3.style.opacity = '0';
-        content3.style.pointerEvents = 'none';
+        [tab1, tab2, tab3].forEach(t => {
+            t.style.color = 'var(--text-secondary)';
+            t.style.background = 'transparent';
+            t.style.borderColor = 'transparent';
+            t.style.fontWeight = '600';
+        });
+
+        // Animate visibility and opacity for stable container layout height
+        content4.style.visibility = 'visible'; content4.style.opacity = '1'; content4.style.pointerEvents = 'auto';
+        content1.style.visibility = 'hidden';  content1.style.opacity = '0';  content1.style.pointerEvents = 'none';
+        content2.style.visibility = 'hidden';  content2.style.opacity = '0';  content2.style.pointerEvents = 'none';
+        content3.style.visibility = 'hidden';  content3.style.opacity = '0';  content3.style.pointerEvents = 'none';
     };
 
     tab3.onclick = async () => {
@@ -299,28 +350,18 @@ async function openSeedConfigModal(device, getConfig, onSaved) {
         tab3.style.borderColor = 'var(--border-color)';
         tab3.style.fontWeight = '700';
 
-        tab1.style.color = 'var(--text-secondary)';
-        tab1.style.background = 'transparent';
-        tab1.style.borderColor = 'transparent';
-        tab1.style.fontWeight = '600';
-
-        tab2.style.color = 'var(--text-secondary)';
-        tab2.style.background = 'transparent';
-        tab2.style.borderColor = 'transparent';
-        tab2.style.fontWeight = '600';
+        [tab1, tab2, tab4].forEach(t => {
+            t.style.color = 'var(--text-secondary)';
+            t.style.background = 'transparent';
+            t.style.borderColor = 'transparent';
+            t.style.fontWeight = '600';
+        });
 
         // Animate visibility and opacity for stable container layout height
-        content3.style.visibility = 'visible';
-        content3.style.opacity = '1';
-        content3.style.pointerEvents = 'auto';
-
-        content1.style.visibility = 'hidden';
-        content1.style.opacity = '0';
-        content1.style.pointerEvents = 'none';
-
-        content2.style.visibility = 'hidden';
-        content2.style.opacity = '0';
-        content2.style.pointerEvents = 'none';
+        content3.style.visibility = 'visible'; content3.style.opacity = '1'; content3.style.pointerEvents = 'auto';
+        content1.style.visibility = 'hidden';  content1.style.opacity = '0';  content1.style.pointerEvents = 'none';
+        content2.style.visibility = 'hidden';  content2.style.opacity = '0';  content2.style.pointerEvents = 'none';
+        content4.style.visibility = 'hidden';  content4.style.opacity = '0';  content4.style.pointerEvents = 'none';
 
         // Fetch fresh history and render
         try {
@@ -353,17 +394,20 @@ async function openSeedConfigModal(device, getConfig, onSaved) {
     btnSave.textContent = 'Lưu thiết lập';
     btnSave.onclick = async () => {
         const selected = Array.from(gridSeeds.querySelectorAll('input:checked')).map(i => i.value);
+        const selectedTools = Array.from(gridTools.querySelectorAll('input:checked')).map(i => i.value);
         const newConf  = { 
             ...cfg, 
             selected_seeds: selected,
-            button_timeout_secs:   _parseSafe(timeout.input.value,   5,    1),
-            click_delay_ms:         _parseSafe(delay.input.value,     1000, 100),
-            match_threshold:        _parseSafe(threshold.input.value, 25,   10),
+            selected_tools: selectedTools,
+            button_timeout_secs:   5,
+            click_delay_ms:        1000,
+            match_threshold:       25,
             game_launch_delay_secs: _parseSafe(launchDelay.input.value, 60,   5),
             harvest_interval_mins:  _parseSafe(harvestInterval.input.value, 30, 1),
-            harvest_loop_count:     _parseSafe(harvestLoop.input.value,     2,  1),
-            sell_loop_count:        _parseSafe(sellLoop.input.value,        2,  1),
+            harvest_loop_count:     2,
+            sell_loop_count:        2,
             enable_buy_seeds:       checkBuy.checked,
+            enable_buy_tools:       checkBuyTools.checked,
             enable_harvest_sell:    checkHarvest.checked,
             enable_auto_login:      checkAutoLogin.checked,
         };

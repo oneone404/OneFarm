@@ -47,11 +47,14 @@ fn main() {
             commands::template::test_digit_recognition,
             commands::device::cancel_device_actions,
             commands::script::run_buy_seeds_script,
+            commands::script::run_buy_tools_script,
             commands::script::run_harvest_sell_script,
             commands::config::get_config,
             commands::config::save_config,
             commands::config::get_purchase_history,
             commands::config::clear_purchase_history,
+            commands::template::get_seed_names,
+            commands::template::get_tool_names,
             restart_app
         ])
         .run(tauri::generate_context!())

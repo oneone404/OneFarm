@@ -13,19 +13,12 @@
     <div class="app-container">
         <header>
             <div class="logo">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                <img src="icon.png" alt="OneFarm Icon" width="16" height="16" style="border-radius:3px; object-fit:contain; flex-shrink:0;">
                 <span>OneFarm</span>
             </div>
             <div class="window-actions">
-                <button id="btn-restart-app" class="icon-btn">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.0" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-                </button>
                 <button id="btn-refresh-devices" class="icon-btn">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.0"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-                </button>
-                <button id="theme-toggle" class="icon-btn">
-                    <svg id="sun-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.0"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-                    <svg id="moon-icon" class="hidden" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.0"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
                 </button>
                 <div class="win-controls">
                     <div class="win-btn" id="win-min">
@@ -44,24 +37,10 @@
         <div class="main-content">
              <main id="device-list" class="device-list">
                 <div style="text-align: center; padding: 48px 24px; color: var(--text-secondary); font-size: 0.8rem; line-height: 1.5; border: 2px dashed var(--border-color); border-radius: 8px; margin: 16px; background: var(--secondary-color);">
-                    Hệ thống đã sẵn sàng. Vui lòng nhấn nút Làm mới (Refresh) ở góc trên bên phải để quét thiết bị và tải mẫu hình.
+                    Hệ thống đã sẵn sàng. Vui lòng nhấn nút Làm mới (Refresh) ở góc trên bên phải để quét thiết bị.
                 </div>
             </main>
         </div>
-
-        <footer class="mac-console">
-            <div class="mac-header">
-                <div class="mac-buttons">
-                    <span class="dot red"></span>
-                    <span class="dot yellow"></span>
-                    <span class="dot green"></span>
-                </div>
-                <div class="mac-title">console - log</div>
-            </div>
-            <div id="console" class="footer-console">
-                <div class="log-entry">[Hệ thống] Đang tải...</div>
-            </div>
-        </footer>
     </div>
 
     <script src="js/theme.js"></script>

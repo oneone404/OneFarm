@@ -38,6 +38,8 @@ fn default_true() -> bool {
 pub struct AppConfig {
     #[serde(default)]
     pub selected_seeds: Vec<String>,
+    #[serde(default)]
+    pub selected_tools: Vec<String>,
     #[serde(default = "default_button_timeout_secs")]
     pub button_timeout_secs: u64,
     #[serde(default = "default_click_delay_ms")]
@@ -55,6 +57,8 @@ pub struct AppConfig {
     #[serde(default = "default_true")]
     pub enable_buy_seeds: bool,
     #[serde(default = "default_true")]
+    pub enable_buy_tools: bool,
+    #[serde(default = "default_true")]
     pub enable_harvest_sell: bool,
     #[serde(default = "default_true")]
     pub enable_auto_login: bool,
@@ -66,6 +70,7 @@ impl Default for AppConfig {
     fn default() -> Self {
         Self {
             selected_seeds: Vec::new(),
+            selected_tools: Vec::new(),
             button_timeout_secs: 5,
             click_delay_ms: 1000,
             match_threshold: 25,
@@ -73,6 +78,7 @@ impl Default for AppConfig {
             harvest_loop_count: 2,
             sell_loop_count: 2,
             enable_buy_seeds: true,
+            enable_buy_tools: true,
             enable_harvest_sell: true,
             enable_auto_login: true,
             game_launch_delay_secs: 60,

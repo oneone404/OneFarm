@@ -343,7 +343,8 @@ pub fn find_and_click_with_timeout(
             // Bỏ qua đối thoại NPC bằng cách click 3 lần (mỗi lần cách nhau 300ms) đối với các nút được chỉ định
             let is_close_shop = key == "buttons/close-harvest.png" && name_vi == "Dong cua hang ban";
             if key == "buttons/open-farm-shop.png" || key == "buttons/open-seed-shop.png" ||
-               key == "buttons/close-seed.png" || is_close_shop {
+               key == "buttons/open-tool-shop.png" ||
+               key == "buttons/close-seed.png" || key == "buttons/leave.png" || is_close_shop {
                 add_log(format!("[BYPASS NPC] Thuc hien click 3 lan tai ({}, {}) voi chu ky 300ms...", tx, ty));
                 for _ in 0..2 {
                     if check_and_clear_cancelled(state) {

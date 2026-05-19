@@ -14,9 +14,7 @@
     transition: background 0.2s;
 }
 
-[data-theme="dark"] ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
-}
+
 
 * {
     margin: 0;
@@ -137,6 +135,4 @@ header {
     overflow-y: auto;
 }
 
-[data-theme="dark"] .footer-console {
-    background: #000000;
-}
+

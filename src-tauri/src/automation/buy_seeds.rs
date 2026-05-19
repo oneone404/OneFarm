@@ -259,7 +259,8 @@ pub fn run_buy_seeds_script_logic(state: &State<'_, AppState>, target_seeds: Vec
                         bought_in_this_step.push(target.clone());
                     } else {
                         click_ld(bind_hwnd, aw_modal, ah_modal, sell_x, sell_y);
-                        sleep!(Duration::from_millis(500));
+                        // Chờ 1 giây để thanh slider và giao diện hiển thị đầy đủ
+                        sleep!(Duration::from_millis(1000));
 
                         let (aw_slider, ah_slider, screen_slider_rgba) = capture_helper(&g, bind_hwnd, state)?;
                         let slider_key = "buttons/slider.png";
@@ -271,50 +272,21 @@ pub fn run_buy_seeds_script_logic(state: &State<'_, AppState>, target_seeds: Vec
                             let slider_y = (fy_sl as f64 + th as f64 / 2.0) as i32;
                             add_log(format!("[SLIDER] Tim thay {} tai ({}, {}) | Score: {}", found_key, slider_x, slider_y, score_sl));
 
-                            let mut final_screen = screen_slider_rgba.clone();
-                            let mut aw_final = aw_slider;
-                            let mut ah_final = ah_slider;
-
                             if slider_x <= 480 {
                                 // Slider is on the left (quantity not maxed yet). Let's click it to max out.
                                 let dest_slider_x = BASE_W as i32 - slider_x + 5;
                                 add_log(format!("[SLIDER LEFT] Click tai ({}, {}) de dat max", dest_slider_x, slider_y));
                                 click_ld(bind_hwnd, aw_slider, ah_slider, dest_slider_x, slider_y);
-
-                                // Dynamic Active Waiting Loop (max 200ms timeout)
-                                let start_wait = std::time::Instant::now();
-                                while start_wait.elapsed().as_millis() < 200 {
-                                    if check_and_clear_cancelled(state) {
-                                        return Err(logs.borrow().join("\n"));
-                                    }
-                                    if let Ok((curr_aw, curr_ah, screen_curr)) = capture_helper(&g, bind_hwnd, state) {
-                                        if let Some((_, fx_curr, _, _, _, _)) = find_template_with_variants(
-                                            &screen_curr, &templates, slider_key, threshold, None
-                                        ) {
-                                            let curr_x = (fx_curr as f64 + tw as f64 / 2.0) as i32;
-                                            if curr_x > 480 {
-                                                // Success: handle has arrived on the right!
-                                                final_screen = screen_curr;
-                                                aw_final = curr_aw;
-                                                ah_final = curr_ah;
-                                                add_log(format!("[SLIDER DETECTED RIGHT] Da nhay sang phai sau {}ms", start_wait.elapsed().as_millis()));
-                                                break;
-                                            }
-                                        }
-                                    }
-                                    std::thread::sleep(std::time::Duration::from_millis(5));
-                                }
                             } else {
                                 // Slider is already on the right (1 seed stock case). Skip slider clicking entirely.
                                 add_log("[SLIDER ALREADY RIGHT] Nao o san ben phai (1 hat). Bo qua buoc click keo slider.".to_string());
                             }
 
-                            // Capture fresh confirm screen if it was NOT updated in the loop
-                            let (aw_confirm, ah_confirm, screen_confirm_rgba) = if slider_x <= 480 {
-                                (aw_final, ah_final, final_screen)
-                            } else {
-                                capture_helper(&g, bind_hwnd, state)?
-                            };
+                            // Chờ tầm 500ms sau khi kéo max để giao diện ổn định và cập nhật số lượng
+                            sleep!(Duration::from_millis(500));
+
+                            // Chụp màn hình mới chứa thông tin mua hàng đã cập nhật số lượng
+                            let (aw_confirm, ah_confirm, screen_confirm_rgba) = capture_helper(&g, bind_hwnd, state)?;
 
                             if let Some((found_key, fx_c, fy_c, tw_c, th_c, score_c)) = find_template_with_variants(
                                 &screen_confirm_rgba, &templates, sell_produce_key, threshold, None

@@ -67,26 +67,13 @@ async function refreshAll() {
 
 function initAppLogic() {
     const btnRefresh = document.getElementById('btn-refresh-devices');
-    const themeToggle = document.getElementById('theme-toggle');
-    const btnRestart = document.getElementById('btn-restart-app');
 
     if (btnRefresh) {
         btnRefresh.addEventListener('click', refreshAll);
     }
-    if (btnRestart) {
-        btnRestart.addEventListener('click', async () => {
-            log('Đang chạy lại ứng dụng để cập nhật mã nguồn mới...', 'info');
-            try {
-                await invoke('restart_app');
-            } catch (err) {
-                log('Lỗi khởi động lại ứng dụng: ' + err, 'error');
-            }
-        });
-    }
-    if (themeToggle) {
-        themeToggle.addEventListener('click', toggleTheme);
-        initTheme();
-    }
+
+    // Initialize only the light theme
+    initTheme();
 
     log('Hệ thống OneFarm Multi đã sẵn sàng. Vui lòng bấm nút Làm mới để quét thiết bị.', 'success');
 }

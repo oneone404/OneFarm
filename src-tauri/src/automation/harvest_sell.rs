@@ -9,7 +9,7 @@ use crate::config::state::{AppState, CachedTemplate};
 use crate::config::persisted::AppConfig;
 use crate::commands::get_or_create_grabber;
 use crate::automation::utils::{
-    check_and_clear_cancelled, capture_helper, find_template_with_variants, click_ld
+    check_and_clear_cancelled, capture_helper, find_template_with_variants, click_ld, BASE_W
 };
 
 pub fn run_harvest_sell_script_logic(state: &State<'_, AppState>) -> std::result::Result<String, String> {
@@ -91,6 +91,29 @@ pub fn run_harvest_sell_script_logic(state: &State<'_, AppState>) -> std::result
         )
     };
 
+    // Hàm đếm số lượng ảnh trùng khớp trên màn hình bằng cách xoá vùng đã nhận diện để tiếp tục quét
+    let count_template_occurrences = |key: &str, screen_rgba: &[u8]| -> usize {
+        let mut count = 0;
+        let mut temp_screen = screen_rgba.to_vec();
+        while let Some((_, x, y, w, h, _)) = find_template_with_variants(
+            &temp_screen, &templates, key, threshold, None
+        ) {
+            count += 1;
+            for row in y..(y + h as usize) {
+                for col in x..(x + w as usize) {
+                    let idx = (row * BASE_W as usize + col) * 4;
+                    if idx + 3 < temp_screen.len() {
+                        temp_screen[idx] = 0;
+                        temp_screen[idx+1] = 0;
+                        temp_screen[idx+2] = 0;
+                        temp_screen[idx+3] = 0;
+                    }
+                }
+            }
+        }
+        count
+    };
+
     // ─── BƯỚC 1: KIỂM TRA VÀ TẮT MODAL MUA HẠT (NẾU ĐANG MỞ) ─────────────────────
     let (_aw, _ah, screen_rgba) = capture_helper(&g, bind_hwnd, state)
         .map_err(|e| format!("Loi chup man hinh check gift: {}", e))?;
@@ -104,7 +127,11 @@ pub fn run_harvest_sell_script_logic(state: &State<'_, AppState>) -> std::result
 
         // Hiện thêm 1 modal trò chuyện, click leave.png và leave2.png
         find_and_click_with_timeout("buttons/leave.png", "Dong hop thoai thoat 1", true)?;
-        find_and_click_with_timeout("buttons/leave2.png", "Dong hop thoai thoat 2", true)?;
+        // Đợi tối đa 1 giây để kiểm tra và click leave2.png nếu có, không bắt buộc tồn tại
+        crate::automation::utils::find_and_click_with_timeout(
+            state, &g, bind_hwnd, &templates, "buttons/leave2.png", "Dong hop thoai thoat 2",
+            Duration::from_secs(1), threshold, click_delay, false, &add_log
+        )?;
     } else {
         add_log("Khong o modal mua hat, bo qua buoc tat.".to_string());
     }
@@ -126,156 +153,99 @@ pub fn run_harvest_sell_script_logic(state: &State<'_, AppState>) -> std::result
         find_and_click_with_timeout("buttons/open-harvest.png", "Nut mo thu hoach trai", true)?;
 
         // ─── BƯỚC 3: VÒNG LẶP THU HOẠCH TRONG CHU KỲ ──────────────────────────────────
-        add_log(format!("Bat dau vong lap thu hoach voi so lan: {}", config.harvest_loop_count));
         let mut harvest_success_count = 0;
         let mut bag_is_full = false;
         let mut has_more_fruit = true;
 
-        for i in 1..=config.harvest_loop_count {
-            if check_and_clear_cancelled(state) {
-                let err_log = logs.borrow().join("\n");
-                return Err(err_log);
-            }
-            add_log(format!("--- Luot thu hoach {}/{} ---", i, config.harvest_loop_count));
+        // Chụp ảnh ban đầu để đếm số lượng nút single-harvest.png màu xanh lá
+        let (_aw, _ah, s_rgba) = capture_helper(&g, bind_hwnd, state)
+            .map_err(|e| format!("Loi chup check so luong trai: {}", e))?;
+        let initial_count = count_template_occurrences("buttons/single-harvest.png", &s_rgba);
+        add_log(format!("-> Kiem tra ban dau: phat hien {} nut [single-harvest.png] tren man hinh.", initial_count));
 
-            // Tìm nút harvest.png
-            let mut harvest_found = false;
-            let start = Instant::now();
-            while start.elapsed() < step_timeout {
-                let (aw, ah, screen_rgba) = capture_helper(&g, bind_hwnd, state)
-                    .map_err(|e| format!("Loi chup man hinh harvest: {}", e))?;
-                if let Some((_, fx, fy, tw, th, _)) = find_template_with_variants(
-                    &screen_rgba, &templates, "buttons/harvest.png", threshold, None
-                ) {
-                    let tx = (fx as f64 + tw as f64 / 2.0) as i32;
-                    let ty = (fy as f64 + th as f64 / 2.0) as i32;
-                    click_ld(bind_hwnd, aw, ah, tx, ty);
-                    add_log(format!("-> Da click harvest tai ({}, {})", tx, ty));
-                    sleep!(click_delay);
-                    harvest_found = true;
+        if initial_count < 8 {
+            add_log("So nut < 8 -> Da het sach trai thuong (chi con trai khoa). Bo qua thu hoach luot nay.".to_string());
+            has_more_fruit = false;
+        } else {
+            add_log("So nut >= 8 -> Van con trai thuong de thu hoach. Tien hanh thu hoach...".to_string());
+            add_log(format!("Bat dau vong lap thu hoach voi so lan: {}", config.harvest_loop_count));
+
+            for i in 1..=config.harvest_loop_count {
+                if check_and_clear_cancelled(state) {
+                    let err_log = logs.borrow().join("\n");
+                    return Err(err_log);
+                }
+                add_log(format!("--- Luot thu hoach {}/{} ---", i, config.harvest_loop_count));
+
+                // Tìm và click nút harvest.png (Thu hoạch tất cả)
+                let mut harvest_found = false;
+                let start = Instant::now();
+                while start.elapsed() < step_timeout {
+                    let (aw, ah, screen_rgba) = capture_helper(&g, bind_hwnd, state)
+                        .map_err(|e| format!("Loi chup man hinh harvest: {}", e))?;
+                    if let Some((_, fx, fy, tw, th, _)) = find_template_with_variants(
+                        &screen_rgba, &templates, "buttons/harvest.png", threshold, None
+                    ) {
+                        let tx = (fx as f64 + tw as f64 / 2.0) as i32;
+                        let ty = (fy as f64 + th as f64 / 2.0) as i32;
+                        click_ld(bind_hwnd, aw, ah, tx, ty);
+                        add_log(format!("-> Da click harvest tai ({}, {})", tx, ty));
+                        sleep!(click_delay);
+                        harvest_found = true;
+                        break;
+                    }
+                    sleep!(Duration::from_millis(200));
+                }
+
+                if !harvest_found {
+                    add_log("Khong tim thay nut [harvest.png]. Dung thu hoach.".to_string());
+                    bag_is_full = false;
+                    has_more_fruit = false;
                     break;
                 }
-                sleep!(Duration::from_millis(200));
-            }
 
-            if !harvest_found {
-                add_log("Khong tim thay nut [harvest.png]. Dang kiem tra nut single-harvest.png de kiem chung...".to_string());
-                
-                let (aw, ah, screen_rgba) = capture_helper(&g, bind_hwnd, state)
-                    .map_err(|e| format!("Loi chup check single harvest: {}", e))?;
-                if let Some((_, fx, fy, tw, th, _)) = find_template_with_variants(
-                    &screen_rgba, &templates, "buttons/single-harvest.png", threshold, None
-                ) {
-                    let tx = (fx as f64 + tw as f64 / 2.0) as i32;
-                    let ty = (fy as f64 + th as f64 / 2.0) as i32;
-                    click_ld(bind_hwnd, aw, ah, tx, ty);
-                    add_log(format!("-> Da click thu single-harvest tai ({}, {}) de check loai trai", tx, ty));
-                    sleep!(click_delay);
-
-                    // Cho doi xem co confirm.png (loai trai khoa) hay khong trong 1 giay
-                    let mut lock_confirm_found = false;
-                    let start_check = Instant::now();
-                    let check_timeout = Duration::from_secs(1);
-                    while start_check.elapsed() < check_timeout {
-                        let (_aw, _ah, s_rgba) = capture_helper(&g, bind_hwnd, state)
-                            .map_err(|e| format!("Loi chup check lock confirm: {}", e))?;
-                        if find_template_with_variants(
-                            &s_rgba, &templates, "buttons/confirm.png", threshold, None
-                        ).is_some() {
-                            lock_confirm_found = true;
-                            break;
-                        }
-                        sleep!(Duration::from_millis(100));
+                // Chờ đợi xem bảng xác nhận confirm.png xuất hiện hay không trong tối đa 1 giây
+                let mut confirm_found = false;
+                let start_confirm = Instant::now();
+                let confirm_timeout = Duration::from_secs(1);
+                while start_confirm.elapsed() < confirm_timeout {
+                    let (aw, ah, screen_rgba) = capture_helper(&g, bind_hwnd, state)
+                        .map_err(|e| format!("Loi chup man hinh confirm: {}", e))?;
+                    if let Some((_, fx, fy, tw, th, _)) = find_template_with_variants(
+                        &screen_rgba, &templates, "buttons/confirm.png", threshold, None
+                    ) {
+                        let tx = (fx as f64 + tw as f64 / 2.0) as i32;
+                        let ty = (fy as f64 + th as f64 / 2.0) as i32;
+                        click_ld(bind_hwnd, aw, ah, tx, ty);
+                        add_log(format!("-> Da click confirm tai ({}, {})", tx, ty));
+                        sleep!(click_delay);
+                        confirm_found = true;
+                        break;
                     }
+                    sleep!(Duration::from_millis(100));
+                }
 
-                    if lock_confirm_found {
-                        add_log("Phat hien day la [TRÁI KHÓA]! Huy bo bang cach click no.png.".to_string());
-                        find_and_click_with_timeout("buttons/no.png", "Nut no de huy bo trai khoa", true)?;
+                if !confirm_found {
+                    add_log("Khong thay confirm.png sau khi click harvest.png. Tien hanh check lai so luong trai...".to_string());
+                    let (_aw, _ah, s_rgba_check) = capture_helper(&g, bind_hwnd, state)
+                        .map_err(|e| format!("Loi chup check lai so luong trai: {}", e))?;
+                    let current_count = count_template_occurrences("buttons/single-harvest.png", &s_rgba_check);
+                    add_log(format!("-> Phat hien {} nut [single-harvest.png] hien tai.", current_count));
+
+                    if current_count < 8 {
+                        add_log("So nut < 8 -> Da thu hoach het trai thuong (chi con trai khoa). Dung thu hoach.".to_string());
                         bag_is_full = false;
                         has_more_fruit = false;
                     } else {
-                        add_log("Khong thay confirm.png sau khi click single-harvest -> Day la trai thuong nhung [TÚI ĐẦY]!".to_string());
+                        add_log("So nut >= 8 nhung khong the thu hoach tiep -> CHẮC CHẮN DO [TÚI ĐẦY]!".to_string());
                         bag_is_full = true;
                         has_more_fruit = true;
                     }
-                } else {
-                    add_log("Khong tim thay single-harvest.png -> Da het sach qua tren cay!".to_string());
-                    bag_is_full = false;
-                    has_more_fruit = false;
-                }
-                break;
-            }
-
-            // Sau khi click harvest, quet lien tuc trong 1 giay de cho doi nut confirm.png xuat hien
-            let mut confirm_found = false;
-            let start_confirm = Instant::now();
-            let confirm_timeout = Duration::from_secs(1);
-            while start_confirm.elapsed() < confirm_timeout {
-                let (aw, ah, screen_rgba) = capture_helper(&g, bind_hwnd, state)
-                    .map_err(|e| format!("Loi chup man hinh confirm: {}", e))?;
-                if let Some((_, fx, fy, tw, th, _)) = find_template_with_variants(
-                    &screen_rgba, &templates, "buttons/confirm.png", threshold, None
-                ) {
-                    let tx = (fx as f64 + tw as f64 / 2.0) as i32;
-                    let ty = (fy as f64 + th as f64 / 2.0) as i32;
-                    click_ld(bind_hwnd, aw, ah, tx, ty);
-                    add_log(format!("-> Da click confirm tai ({}, {})", tx, ty));
-                    sleep!(click_delay);
-                    confirm_found = true;
                     break;
                 }
-                sleep!(Duration::from_millis(100));
+
+                harvest_success_count += 1;
             }
-
-            if !confirm_found {
-                add_log("Khong thay confirm.png sau khi click harvest.png. Dang click nut single-harvest.png de kiem tra loai trai...".to_string());
-                
-                let (aw, ah, screen_rgba) = capture_helper(&g, bind_hwnd, state)
-                    .map_err(|e| format!("Loi chup check single harvest: {}", e))?;
-                if let Some((_, fx, fy, tw, th, _)) = find_template_with_variants(
-                    &screen_rgba, &templates, "buttons/single-harvest.png", threshold, None
-                ) {
-                    let tx = (fx as f64 + tw as f64 / 2.0) as i32;
-                    let ty = (fy as f64 + th as f64 / 2.0) as i32;
-                    click_ld(bind_hwnd, aw, ah, tx, ty);
-                    add_log(format!("-> Da click thu single-harvest tai ({}, {}) de check loai trai", tx, ty));
-                    sleep!(click_delay);
-
-                    // Cho doi xem co confirm.png (loai trai khoa) hay khong trong 1 giay
-                    let mut lock_confirm_found = false;
-                    let start_check = Instant::now();
-                    let check_timeout = Duration::from_secs(1);
-                    while start_check.elapsed() < check_timeout {
-                        let (_aw, _ah, s_rgba) = capture_helper(&g, bind_hwnd, state)
-                            .map_err(|e| format!("Loi chup check lock confirm: {}", e))?;
-                        if find_template_with_variants(
-                            &s_rgba, &templates, "buttons/confirm.png", threshold, None
-                        ).is_some() {
-                            lock_confirm_found = true;
-                            break;
-                        }
-                        sleep!(Duration::from_millis(100));
-                    }
-
-                    if lock_confirm_found {
-                        add_log("Phat hien day la [TRÁI KHÓA]! Huy bo bang cach click no.png.".to_string());
-                        find_and_click_with_timeout("buttons/no.png", "Nut no de huy bo trai khoa", true)?;
-                        bag_is_full = false;
-                        has_more_fruit = false;
-                    } else {
-                        add_log("Khong thay confirm.png sau khi click single-harvest -> Day la trai thuong nhung [TÚI ĐẦY]!".to_string());
-                        bag_is_full = true;
-                        has_more_fruit = true;
-                    }
-                } else {
-                    add_log("Khong tim thay single-harvest.png -> Da het sach qua tren cay!".to_string());
-                    bag_is_full = false;
-                    has_more_fruit = false;
-                }
-                break;
-            }
-
-            harvest_success_count += 1;
         }
 
         add_log(format!("Da hoan thanh {} luot thu hoach o chu ky nay.", harvest_success_count));
@@ -380,7 +350,17 @@ pub fn run_harvest_sell_script_logic(state: &State<'_, AppState>) -> std::result
 
         // Thoát hoàn toàn
         find_and_click_with_timeout("buttons/close-harvest.png", "Dong cua hang ban", true)?;
-        find_and_click_with_timeout("buttons/leave2.png", "Thoat han ra ngoai", true)?;
+        // Đợi tối đa 1 giây để kiểm tra và click leave2.png nếu có, không bắt buộc tồn tại
+        crate::automation::utils::find_and_click_with_timeout(
+            state, &g, bind_hwnd, &templates, "buttons/leave2.png", "Thoat han ra ngoai",
+            Duration::from_secs(1), threshold, click_delay, false, &add_log
+        )?;
+
+        // Nếu không thu hoạch được gì mới và cũng không bán được gì -> Dừng kịch bản ngay để tránh lặp vô hạn (chỉ còn trái khóa)
+        if harvest_success_count == 0 && sell_success_count == 0 {
+            add_log("Phat hien khong thu hoach duoc gi moi va cung khong ban duoc gi (Chi con toan trai khoa). Dung kich ban de tranh lap vo han!".to_string());
+            break;
+        }
 
         // Nếu lúc nãy bot xác định là đã HẾT QUẢ trên cây -> dừng hoàn toàn kịch bản
         if !has_more_fruit {

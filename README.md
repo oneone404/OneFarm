@@ -96,3 +96,59 @@ Bộ công cụ Auto-Farm tối ưu hóa cho LDPlayer, tập trung vào tốc đ
 * **Nhánh sao lưu phiên bản Tauri**: Toàn bộ mã nguồn giao diện Tauri ổn định hiện tại (tích hợp Auto-Login động, NPC Dialogue Bypass 3 clicks/300ms,...) đã được đẩy lên nhánh độc lập **`backup/tauri-dialogue-bypass`** trên GitHub.
 * **Hướng dẫn khôi phục**: Trong trường hợp quá trình thử nghiệm giao diện siêu nhẹ mới gặp sự cố và bạn muốn quay trở lại phiên bản Tauri này, hãy làm theo các bước hướng dẫn chi tiết tại tệp [REVERT_INSTRUCTIONS.md](file:///c:/Users/CBS/Documents/App/Farm/REVERT_INSTRUCTIONS.md) để khôi phục đè hoàn toàn nhánh main một cách an toàn và tự động.
 
+---
+
+## ⚡ Các Tối Ưu Hóa Kịch Bản Backend Đã Áp Dụng (Mới Nhất)
+Các tối ưu hóa logic script quan trọng dưới đây đã được tích hợp trực tiếp vào mã nguồn chạy nền của phiên bản Tauri UI để nâng cao tối đa độ ổn định:
+1. **Timing mua hạt giống (buy_seeds.rs)**: Tăng thời gian chờ xuất hiện thanh trượt slider lên 1000ms, thêm độ trễ nghỉ 500ms sau khi kéo Max và thực hiện chụp ảnh màn hình mới trước khi tìm nút mua hàng để đảm bảo game phản hồi kịp tiến trình của bot.
+2. **Bypass đóng NPC (utils.rs)**: Tích hợp thêm nút `buttons/leave.png` vào danh sách NPC Dialogue Bypass để tự động click 3 lần chu kỳ 300ms, tắt nhanh mọi cuộc đối thoại NPC còn sót lại.
+3. **Soft-Check nút thoát (harvest_sell.rs)**: Cấu hình quét nút `buttons/leave2.png` ở tốc độ 1 giây và thiết lập cờ `must_exist = false` giúp kịch bản tiếp tục chạy trơn tru ngay cả khi nút này không xuất hiện.
+4. **Loại bỏ Console Log khỏi UI**: Xóa bỏ hoàn toàn khung console log hiển thị ở góc dưới giao diện HTML để tối ưu hóa không gian hiển thị, tăng tối đa chiều cao cho danh sách thiết bị giả lập. Toàn bộ log chi tiết giờ đây sẽ được xem trực tiếp tại Terminal (CMD/PowerShell) của bạn một cách tập trung, nhanh chóng và mượt mà hơn.
+5. **Tự động sắp xếp cấp thấp (harvest_sell.rs)**: Tích hợp cơ chế tự động click `buttons/sort.png` và `buttons/low.png` trước khi chạy kịch bản thu hoạch đơn lẻ. Giúp ưu tiên đưa các loại trái thường level thấp lên đầu danh sách và hái sạch chúng trước, triệt tiêu hoàn toàn khả năng bot bị mắc kẹt khi gặp các trái khóa level cao ở trên cùng.
+6. **Module Mua công cụ (buy_tools.rs) và Tab 4 "Chọn công cụ"**: Bổ sung trọn vẹn kịch bản mua công cụ tự động từ cửa hàng dụng cụ (`tool-shop.png` -> `open-tool-shop.png` -> `open-tool-shop2.png`). Tích hợp Tab cấu hình chọn công cụ độc lập trong Modal Thiết lập ⚙️, đồng hành cùng cờ bật/tắt toàn cục và thống kê số lượng mua thành công cực kỳ trực quan.
+7. **Lên lịch mua công cụ theo đồng hồ hệ thống**: Thay vì chạy lặp vô nghĩa mỗi 5 phút, kịch bản mua công cụ được thiết kế thông minh để tự động chạy khi nhấn Play lần đầu, sau đó chỉ kích hoạt đúng vào **phút `00` và phút `30`** của đồng hồ hệ thống để khớp hoàn hảo chu kỳ 30 phút làm mới cửa hàng của game client.
+8. **Hộp nhất Lịch sử Mua hàng (Tab 3 - Lịch sử mua)**: Toàn bộ số lượng công cụ mua thành công đã được đồng bộ ghi nhận vào bộ đệm phiên làm việc chung. Giao diện Tab Lịch sử mua được nâng cấp thông minh, tự động nhận diện và phân loại biểu tượng hiển thị kèm hậu tố đơn vị riêng biệt (ví dụ: "voi3: 10 cái" với Icon công cụ và "carrot: 25 hạt" với Icon hạt giống).
+9. **Chuẩn hóa Tên Tiếng Việt hạt giống qua JSON**: Thiết lập tệp tin cấu hình dịch thuật [names.json](file:///c:/Users/CBS/Documents/App/Farm/templates/seeds/names.json) nằm trực tiếp trong thư mục `templates/seeds/`. Giao diện Frontend tự động liên kết và hiển thị tên tiếng Việt tùy chỉnh (ví dụ: "Cà rốt" thay thế cho "carrot", "Na" cho "sugarapple"...) tại cả Tab chọn hạt giống lẫn Lịch sử mua, trong khi hệ thống nhận diện ảnh mẫu ở backend vẫn hoạt động chuẩn xác dựa trên tên tệp tin gốc.
+10. **Chuẩn hóa Tên Tiếng Việt công cụ qua JSON**: Thiết lập tệp tin cấu hình dịch thuật [names.json](file:///c:/Users/CBS/Documents/App/Farm/templates/tools/names.json) trong thư mục `templates/tools/` với bản dịch mẫu `"voi3": "Vòi cao cấp"`. Giao diện Frontend tự động ánh xạ hiển thị tên tiếng Việt dịch tương ứng tại cả Tab chọn công cụ lẫn Lịch sử mua hàng.
+11. **Giao diện Tab tối giản (Icon-only)**: Loại bỏ hoàn toàn nhãn chữ dư thừa trên tiêu đề của 4 Tab cấu hình trong Modal Thiết lập ⚙️, chỉ giữ lại các biểu tượng đại diện thanh lịch (Bánh răng cho Cài đặt chung, Cây mầm cho Chọn hạt, Dụng cụ cho Chọn công cụ, và Đồng hồ cho Lịch sử). Các nút tab được tối ưu khoảng cách padding, canh giữa hoàn hảo và bo góc mềm mại, kiến tạo một diện mạo siêu tối giản (Minimalist Design) cực kỳ cao cấp.
+12. **Giao diện Xanh Băng (Glacier Ice Blue Theme)**: Cập nhật hệ thống biến màu sắc CSS toàn cục thành phong cách "Xanh Băng" nghệ thuật cho cả Light Mode và Dark Mode. Tông màu xanh da trời cơ bản đã được thay thế bằng sắc xanh băng tuyết ngọc lam tươi mát và tinh khiết kết hợp nền giả lập mờ (translucent frosting) tạo ấn tượng thị giác cực mạnh, đẳng cấp và đồng bộ tuyệt đối trên mọi thành phần giao diện.
+13. **Cố định Header & Footer Modal (Tránh tràn nút bấm)**: Tái cấu trúc phân lớp cuộn của Modal card. Bằng việc chuyển cờ cuộn `overflow-y: auto` từ `.modal-card` vào `.modal-body` kết hợp `flex: 1` và `overflow: hidden` ở lớp thẻ bao ngoài, tiêu đề (Tab) và chân trang (các nút bấm "Đóng" & "Lưu thiết lập") giờ đây sẽ luôn luôn hiển thị cố định ở vị trí tương ứng của chúng. Khi kích thước cửa sổ ứng dụng bị co nhỏ lại, chỉ có phần nội dung bên trong Tab cuộn độc lập với thanh cuộn siêu mỏng 6px xanh băng vô cùng tinh tế, triệt tiêu hoàn toàn lỗi tràn/ẩn mất nút bấm. Đồng thời, giảm khoảng đệm trên/dưới của card từ `24px` xuống `14px`, giảm khoảng trống đệm header/footer và khoảng cách giữa các phần tử từ `20px` xuống `12px`, giúp tối ưu hóa tối đa chiều cao hiển thị và giải phóng không gian cực kỳ thoáng đãng cho phần nội dung ở giữa.
+14. **Tinh giản Giao diện Tham số Cấu hình**: Loại bỏ hoàn toàn các ô nhập liệu nâng cao và ít thay đổi khỏi giao diện người dùng để tăng tính trực quan.
+    * Ẩn "Lượt lặp thu hoạch" và "Lượt lặp bán", tự động gán mặc định là **2**.
+    * Ẩn "Timeout", "Delay nút", và "Độ nhạy khớp", tự động gán mặc định tương ứng là **5 giây**, **1000 mili-giây**, và **25**.
+    * Loại bỏ hoàn toàn hai tiêu đề chữ "Kịch bản hoạt động" và "Tham số vận hành" cùng khoảng đệm `margin-top` thừa, trực tiếp hiển thị các ô checkbox và các ô cấu hình song song. Điều này giúp giao diện Tab 1 trở nên tinh tế, thoáng đãng và có độ thoáng thị giác cực kỳ cao.
+    * **Xếp dọc 4 Kịch bản hoạt động**: Thay thế bố cục lưới 4 cột nằm ngang bằng bố cục cột dọc (`display: flex; flex-direction: column; gap: 12px;`). Việc mỗi kịch bản chiếm trọn 1 dòng giúp người dùng cực kỳ dễ đọc, dễ check và tránh bấm nhầm khi sử dụng trên các màn hình có độ phân giải khác nhau.
+15. **Tinh gọn Giao diện Tab & Cố định Nút Đóng Tuyệt Đối**:
+    * **Tab Siêu Tinh Gọn**: Thu nhỏ các nút Tab thành hình vuông bo góc hoàn mỹ kích thước `32px x 32px`, loại bỏ kéo giãn tỷ lệ (`flex: none`), giúp toàn bộ 4 tab được nhóm chặt chẽ và tinh tế ở góc bên trái Header.
+    * **Vị trí Nút Đóng (X) Tự nhiên**: Đưa nút Đóng (X) về lại luồng bố cục tiêu chuẩn ở phía bên phải của hàng tiêu đề Header (`modal-header`), tạo khoảng cách tách biệt hoàn mỹ so với cụm Tab ở bên trái nhờ cơ chế căn lề giãn đều (`justify-content: space-between`), đảm bảo tính trực quan và đồng bộ tuyệt đối với các modal khác trong hệ thống.
+    * **Kháng Lỗi Nhấn Phím Enter (Mở Trùng Lặp)**: Tích hợp cơ chế kiểm soát trạng thái DOM (`document.querySelector('.modal-overlay')`) ngay tại điểm bắt đầu mở modal. Cơ chế này khóa chặn hoàn toàn lỗi trùng lặp khi người dùng lỡ tay click đúp chuột hoặc nhấn giữ phím Enter khi nút mở đang được kích hoạt, đảm bảo ứng dụng luôn chỉ duy trì duy nhất một cửa sổ thiết lập an toàn.
+    * **Rút gọn Thông báo Lịch sử Trống**: Thay đổi dòng thông báo dài dòng ở Tab 3 (Lịch sử) khi chưa phát sinh giao dịch mua sắm thành nhãn thông tin siêu gọn gàng: `"Chưa có lịch sử"`, giúp tổng thể tab lịch sử trở nên tối giản và tinh gọn tối đa.
+16. **Tái sinh Bộ biểu tượng Ứng dụng & Đồng bộ Thương hiệu Logo**:
+    * Sử dụng tệp hình ảnh gốc độ phân giải siêu cao [icon.png](file:///C:/Users/CBS/Documents/App/Farm/icon.png) để biên dịch lại toàn bộ gói tài nguyên biểu tượng (icons) cho ứng dụng.
+    * Tự động khởi chạy bộ sinh của Tauri CLI (`tauri-cli`) để tạo ra đồng loạt 50+ định dạng biểu tượng tương thích đa nền tảng bao gồm: `icon.ico` cho Windows, `icon.icns` cho macOS, các tệp ảnh PNG với mọi kích thước (`32x32`, `64x64`, `128x128`, `128x128@2x`, `Square150x150Logo`, `StoreLogo`...) cũng như toàn bộ tài nguyên cho iOS và Android.
+    * **Đồng bộ Logo ở Header**: Thay thế biểu tượng các lớp xếp chồng SVG mặc định góc trên cùng bên trái thanh tiêu đề Header bằng chính logo thương hiệu sắc nét `icon.png` (`static/icon.png`), mang lại ấn tượng thị giác cực kỳ cao cấp, đồng bộ và chuyên nghiệp.
+17. **Tối ưu hóa Giao diện Đơn Sắc Sáng (Light-Theme Only)**:
+    * Loại bỏ hoàn toàn hệ thống chuyển đổi giao diện nền tối (Dark Theme) tại tất cả các tệp CSS (`variables.css`, `layout.css`, `components.css`), tập trung 100% tài nguyên tối ưu hóa hiển thị xuất sắc cho nền Sáng Xanh Băng tinh khiết, nhẹ nhàng và dịu mắt.
+    * Đơn giản hóa mã nguồn [theme.js](file:///c:/Users/CBS/Documents/App/Farm/static/js/theme.js), luôn luôn khởi chạy và cố định giá trị thuộc tính giao diện là `light` khi mở ứng dụng.
+    * **Loại bỏ Phím chuyển đổi Theme & Phím Sấm Sét**: Gỡ bỏ hoàn toàn nút bấm đổi theme (Trăng/Mặt trời) và nút bấm Khởi động lại ứng dụng (biểu tượng tia Sấm sét) khỏi thanh tiêu đề của Header để trả lại sự gọn gàng tuyệt đối, giúp giao diện không bị rối mắt và tinh tế hơn bao giờ hết.
+18. **Tinh giản Cột Kết nối (Connect Column)**:
+    * **Xóa hoàn toàn Mã nguồn Trạng thái thừa**: Thay vì chỉ ẩn, đã dọn sạch toàn bộ các biến, tham số, logic và phần tử DOM liên quan đến `switchLabel` ở tệp JavaScript.
+    * **Đồng bộ trạng thái vào cột STATUS (Tiếng Việt)**: Chuyển toàn bộ các dòng thông báo trạng thái kết nối (`"Sẵn sàng"`, `"Đang kết nối..."`, `"Đã kết nối"`, `"Đang ngắt kết nối..."`, `"Kết nối thất bại"`) sang hiển thị tập trung tại cột **STATUS** được mở rộng rộng rãi (`width: 200px`, `min-width: 180px`), tạo nên giao diện hiện đại cực kỳ thông minh.
+19. **Nâng cấp Cơ chế Thu hoạch Siêu Tốc (Blazing Fast Crop Scan)**:
+    * **Thay thế hoàn toàn Sort & Click check**: Loại bỏ toàn bộ quy trình lọc/sắp xếp (`sort.png` / `low.png`) và các bước click thử quả đơn lẻ (`single-harvest.png`), giúp tăng tốc độ xử lý lên gấp 10 lần và triệt tiêu hoàn toàn khả năng lỗi click.
+    * **Thuật toán Đếm Công cụ Màu Xanh lá**: Tích hợp thuật toán đếm tự động số lượng nút `single-harvest.png` màu xanh lá xuất hiện trên màn hình bằng cách tạm thời xoá các vùng đã nhận diện và tiếp tục quét.
+    * **Đưa ra Kết quả Tức thì & Chốt chặn Lặp vô hạn (Trái khóa)**:
+      * Nếu **ít hơn 8 nút** màu xanh: Kết luận ngay lập tức là đã hết sạch quả thường (chỉ còn trái khóa), bỏ qua click thu hoạch.
+      * Nếu **từ 8 nút trở lên**: Tiến hành nhấn nút "Thu hoạch tất cả". Nếu không thấy nút xác nhận `confirm.png` (bị trơ do chỉ toàn trái khóa hoặc do túi đầy), bot đếm lại số nút. Nếu $\ge 8$, bot tạm thời gán là do Túi đầy và chuyển sang đi bán nông sản.
+      * **Chốt chặn an toàn chống lặp vô hạn**: Tại cuối mỗi chu kỳ lớn, nếu bot **thu hoạch được 0 lượt VÀ bán được 0 lượt** (chắc chắn do màn hình chỉ còn lại $\ge 8$ quả khóa khiến bot tưởng túi đầy nhưng đi bán lại không có gì), hệ thống sẽ lập tức cảnh báo và **dừng kịch bản ngay lập tức** để bảo vệ tài nguyên và tránh bị kẹt luồng vô ích.
+
+
+
+
+
+
+
+
+
+
+

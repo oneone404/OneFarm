@@ -13,8 +13,8 @@
     "windows": [
       {
         "title": "OneFarm",
-        "width": 950,
-        "height": 550,
+        "width": 830,
+        "height": 500,
         "resizable": true,
         "decorations": false,
         "center": true

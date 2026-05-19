@@ -25,8 +25,8 @@ pub fn get_templates(state: State<'_, AppState>) -> Vec<String> {
     let mut cache = state.template_cache.lock().unwrap();
     cache.clear(); // Làm mới Cache khi quét lại
 
-    // Quét 3 thư mục con theo danh mục
-    let categories = ["buttons", "seeds", "seeds/digits"];
+    // Quét 4 thư mục con theo danh mục
+    let categories = ["buttons", "seeds", "seeds/digits", "tools"];
     for cat in &categories {
         let dir_path = format!("templates/{}", cat);
         if let Ok(entries) = fs::read_dir(&dir_path) {
@@ -189,7 +189,7 @@ pub fn test_template(state: State<'_, AppState>, name: String) -> std::result::R
         let mut cache = state.template_cache.lock().unwrap();
         // Nếu cache trống thì nạp lại
         if cache.is_empty() {
-            let categories = ["buttons", "seeds", "seeds/digits"];
+            let categories = ["buttons", "seeds", "seeds/digits", "tools"];
             for cat in &categories {
                 let dir_path = format!("templates/{}", cat);
                 if let Ok(entries) = fs::read_dir(&dir_path) {
@@ -316,7 +316,7 @@ pub fn test_all_templates(state: State<'_, AppState>) -> std::result::Result<Str
         let mut cache = state.template_cache.lock().unwrap();
         // Nếu cache trống thì nạp lại theo danh mục
         if cache.is_empty() {
-            let categories = ["buttons", "seeds", "seeds/digits"];
+            let categories = ["buttons", "seeds", "seeds/digits", "tools"];
             for cat in &categories {
                 let dir_path = format!("templates/{}", cat);
                 if let Ok(entries) = fs::read_dir(&dir_path) {
@@ -402,7 +402,7 @@ pub fn test_digit_recognition(state: State<'_, AppState>) -> std::result::Result
     let templates: HashMap<String, (Arc<Vec<u8>>, u32, u32)> = {
         let mut cache = state.template_cache.lock().unwrap();
         if cache.is_empty() {
-            let categories = ["buttons", "seeds", "seeds/digits"];
+            let categories = ["buttons", "seeds", "seeds/digits", "tools"];
             for cat in &categories {
                 let dir_path = format!("templates/{}", cat);
                 if let Ok(entries) = fs::read_dir(&dir_path) {
@@ -477,4 +477,26 @@ pub fn test_digit_recognition(state: State<'_, AppState>) -> std::result::Result
             time_log
         ))
     }
+}
+
+#[tauri::command]
+pub fn get_seed_names() -> HashMap<String, String> {
+    let path = "templates/seeds/names.json";
+    if let Ok(content) = fs::read_to_string(path) {
+        if let Ok(map) = serde_json::from_str::<HashMap<String, String>>(&content) {
+            return map;
+        }
+    }
+    HashMap::new()
+}
+
+#[tauri::command]
+pub fn get_tool_names() -> HashMap<String, String> {
+    let path = "templates/tools/names.json";
+    if let Ok(content) = fs::read_to_string(path) {
+        if let Ok(map) = serde_json::from_str::<HashMap<String, String>>(&content) {
+            return map;
+        }
+    }
+    HashMap::new()
 }
